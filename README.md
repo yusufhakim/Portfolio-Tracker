@@ -7,6 +7,11 @@ ranges, and let the backend keep prices fresh automatically.
 This is **Stage 1**: a full working app (mobile client + API + scheduled price updates), built so
 later stages (multi-user accounts, alerts, more asset classes) can layer on cleanly.
 
+> 🟢 **Non-technical? On Windows with an Android phone?** Follow the plain-language, click-by-click
+> guide in **[GETTING-STARTED-WINDOWS.md](GETTING-STARTED-WINDOWS.md)** — it uses the included
+> `windows-setup.bat` / `windows-start-*.bat` helpers so you barely touch the terminal. The sections
+> below are the manual/developer instructions.
+
 ## What it does
 
 - **Add / remove holdings** — search a US ticker (via Finnhub) or an Indian mutual fund by name
