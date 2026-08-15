@@ -15,31 +15,32 @@ echo   It may take a few minutes. Please wait until it says DONE.
 echo ============================================================
 echo.
 
-REM ---- 1. Check Python -------------------------------------------------
-echo [1/4] Checking that Python is installed...
-py --version >nul 2>&1
-if errorlevel 1 (
-    python --version >nul 2>&1
-    if errorlevel 1 (
-        echo.
-        echo   XX  Python was not found on your computer.
-        echo.
-        echo   Please install it first:
-        echo     1. Go to  https://www.python.org/downloads/
-        echo     2. Click the big yellow "Download Python" button.
-        echo     3. Run the file you downloaded.
-        echo     4. IMPORTANT: tick the box "Add python.exe to PATH" before clicking Install.
-        echo     5. After it finishes, run this setup file again.
-        echo.
-        pause
-        exit /b 1
-    ) else (
-        set "PYCMD=python"
+REM ---- 1. Find a COMPATIBLE Python (3.11 - 3.13) ----------------------
+REM Newer Pythons (3.14/3.15) don't yet have ready-made parts for some
+REM building blocks on Windows, so we pick a known-good version if present.
+echo [1/4] Looking for a compatible Python (version 3.11, 3.12 or 3.13)...
+set "PYCMD="
+for %%V in (3.13 3.12 3.11) do (
+    if not defined PYCMD (
+        py -%%V --version >nul 2>&1 && set "PYCMD=py -%%V"
     )
-) else (
-    set "PYCMD=py"
 )
-echo      OK - Python found.
+if not defined PYCMD (
+    echo.
+    echo   XX  No compatible Python version was found.
+    echo.
+    echo   Your Python may be too new for some parts to install.
+    echo   Please install Python 3.13 - it is stable and works perfectly:
+    echo     1. Go to  https://www.python.org/downloads/windows/
+    echo     2. Under "Stable Releases", find a "Python 3.13.x" entry.
+    echo     3. Click its "Windows installer 64-bit" link to download.
+    echo     4. Run it, TICK "Add python.exe to PATH", then click Install Now.
+    echo     5. After it finishes, run this setup file again.
+    echo.
+    pause
+    exit /b 1
+)
+echo      OK - using Python via:  %PYCMD%
 echo.
 
 REM ---- 2. Check Node.js ------------------------------------------------
@@ -64,13 +65,12 @@ echo.
 REM ---- 3. Set up the backend (the "engine") ---------------------------
 echo [3/4] Setting up the price engine. This can take a few minutes...
 cd backend
-if not exist ".venv" (
-    %PYCMD% -m venv .venv
-    if errorlevel 1 (
-        echo   XX  Could not create the Python environment. See message above.
-        pause
-        exit /b 1
-    )
+if exist ".venv" rmdir /s /q .venv
+%PYCMD% -m venv .venv
+if errorlevel 1 (
+    echo   XX  Could not create the Python environment. See message above.
+    pause
+    exit /b 1
 )
 call .venv\Scripts\activate.bat
 python -m pip install --upgrade pip >nul
