@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import { Dimensions, StyleSheet, Text, View } from "react-native";
-import { LineChart } from "react-native-gifted-charts";
+import Svg, { Defs, LinearGradient, Path, Stop } from "react-native-svg";
 
 import type { HistoryPoint } from "@/api/types";
 import { colors, formatCurrency, spacing } from "@/theme";
@@ -11,18 +11,54 @@ interface Props {
   loading?: boolean;
 }
 
+const HEIGHT = 200;
+
+/**
+ * Lightweight area line-chart drawn with react-native-svg (bundled in Expo Go,
+ * so no extra native dependencies). Builds a smooth-ish polyline of the
+ * portfolio value plus a soft gradient fill beneath it.
+ */
 export function PortfolioChart({ points, baseCurrency, loading }: Props) {
   const width = Dimensions.get("window").width - spacing.lg * 2;
 
-  const data = useMemo(
-    () => points.map((p) => ({ value: p.value })),
-    [points],
-  );
+  const { linePath, areaPath, minVal, maxVal, trendUp } = useMemo(() => {
+    if (points.length < 2) {
+      return {
+        linePath: "",
+        areaPath: "",
+        minVal: 0,
+        maxVal: 0,
+        trendUp: true,
+      };
+    }
+    const values = points.map((p) => p.value);
+    const min = Math.min(...values);
+    const max = Math.max(...values);
+    const range = max - min || 1;
+    const padY = 12;
+    const usableH = HEIGHT - padY * 2;
+    const stepX = width / (points.length - 1);
 
-  const trendUp = useMemo(() => {
-    if (points.length < 2) return true;
-    return points[points.length - 1].value >= points[0].value;
-  }, [points]);
+    const coords = values.map((v, i) => {
+      const x = i * stepX;
+      const y = padY + (1 - (v - min) / range) * usableH;
+      return [x, y] as const;
+    });
+
+    const line = coords
+      .map(([x, y], i) => `${i === 0 ? "M" : "L"}${x.toFixed(2)},${y.toFixed(2)}`)
+      .join(" ");
+    const area =
+      `${line} L${(width).toFixed(2)},${HEIGHT} L0,${HEIGHT} Z`;
+
+    return {
+      linePath: line,
+      areaPath: area,
+      minVal: min,
+      maxVal: max,
+      trendUp: values[values.length - 1] >= values[0],
+    };
+  }, [points, width]);
 
   if (loading) {
     return (
@@ -32,7 +68,7 @@ export function PortfolioChart({ points, baseCurrency, loading }: Props) {
     );
   }
 
-  if (data.length < 2) {
+  if (points.length < 2) {
     return (
       <View style={[styles.placeholder, { width }]}>
         <Text style={styles.placeholderText}>
@@ -43,33 +79,26 @@ export function PortfolioChart({ points, baseCurrency, loading }: Props) {
   }
 
   const lineColor = trendUp ? colors.positive : colors.negative;
-  const values = points.map((p) => p.value);
-  const minVal = Math.min(...values);
-  const maxVal = Math.max(...values);
 
   return (
     <View>
-      <LineChart
-        areaChart
-        data={data}
-        width={width}
-        height={200}
-        initialSpacing={0}
-        endSpacing={0}
-        thickness={2}
-        color={lineColor}
-        startFillColor={lineColor}
-        endFillColor={colors.bg}
-        startOpacity={0.35}
-        endOpacity={0.02}
-        hideDataPoints
-        hideRules
-        hideYAxisText
-        yAxisThickness={0}
-        xAxisThickness={0}
-        adjustToWidth
-        curved
-      />
+      <Svg width={width} height={HEIGHT}>
+        <Defs>
+          <LinearGradient id="areaFill" x1="0" y1="0" x2="0" y2="1">
+            <Stop offset="0" stopColor={lineColor} stopOpacity={0.35} />
+            <Stop offset="1" stopColor={lineColor} stopOpacity={0.02} />
+          </LinearGradient>
+        </Defs>
+        <Path d={areaPath} fill="url(#areaFill)" />
+        <Path
+          d={linePath}
+          fill="none"
+          stroke={lineColor}
+          strokeWidth={2}
+          strokeLinejoin="round"
+          strokeLinecap="round"
+        />
+      </Svg>
       <View style={styles.axisRow}>
         <Text style={styles.axisText}>{formatCurrency(minVal, baseCurrency)}</Text>
         <Text style={styles.axisText}>{formatCurrency(maxVal, baseCurrency)}</Text>
@@ -80,7 +109,7 @@ export function PortfolioChart({ points, baseCurrency, loading }: Props) {
 
 const styles = StyleSheet.create({
   placeholder: {
-    height: 200,
+    height: HEIGHT,
     justifyContent: "center",
     alignItems: "center",
     backgroundColor: colors.surface,
