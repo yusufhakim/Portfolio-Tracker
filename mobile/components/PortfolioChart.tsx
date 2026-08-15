@@ -2,11 +2,11 @@ import { useMemo } from "react";
 import { Dimensions, StyleSheet, Text, View } from "react-native";
 import Svg, { Defs, LinearGradient, Path, Stop } from "react-native-svg";
 
-import type { HistoryPoint } from "@/api/types";
+import type { PortfolioHistoryPoint } from "@/db/types";
 import { colors, formatCurrency, spacing } from "@/theme";
 
 interface Props {
-  points: HistoryPoint[];
+  points: PortfolioHistoryPoint[];
   baseCurrency: string;
   loading?: boolean;
 }

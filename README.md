@@ -1,16 +1,34 @@
 # Portfolio Tracker
 
-A mobile portfolio tracker for **US equities, US ETFs, and Indian mutual funds**. Add your own
-holdings, see a live-updating total value with a performance graph you can toggle across time
-ranges, and let the backend keep prices fresh automatically.
+A mobile portfolio tracker for **US equities, US ETFs, and Indian mutual funds**. Record your buys and
+sells, see each holding with today's change, value and total gain/loss, and a performance graph you can
+toggle across time ranges.
 
-This is **Stage 1**: a full working app (mobile client + API + scheduled price updates), built so
-later stages (multi-user accounts, alerts, more asset classes) can layer on cleanly.
+> 🟢 **Just want the app on your phone?** As of **Stage 2** this is a **fully standalone Android app** —
+> no computer, no server. Build it once and install the APK: follow
+> **[BUILD-APK-WINDOWS.md](BUILD-APK-WINDOWS.md)**. After that your laptop is never needed.
 
-> 🟢 **Non-technical? On Windows with an Android phone?** Follow the plain-language, click-by-click
-> guide in **[GETTING-STARTED-WINDOWS.md](GETTING-STARTED-WINDOWS.md)** — it uses the included
-> `windows-setup.bat` / `windows-start-*.bat` helpers so you barely touch the terminal. The sections
-> below are the manual/developer instructions.
+## Stages
+- **Stage 2 (current):** self-contained on-device app — local SQLite storage, prices fetched directly
+  from the phone, transaction/lot tracking (buy/sell + dates), edit/delete, a Holdings/Transactions
+  toggle, and best-effort background refresh. Packaged as an installable **APK** via EAS Build. The
+  mobile app lives in `mobile/`; there is **no runtime server**.
+- **Stage 1 (legacy):** a client–server version (Python/FastAPI backend + Expo client). The `backend/`
+  folder and `windows-start-backend.bat` / `windows-start-app.bat` / `GETTING-STARTED-WINDOWS.md` are
+  kept for reference only and are **no longer used** by the Stage 2 app.
+
+## What it does (Stage 2)
+- **Record transactions** — search a US stock by **name or ticker** ("apple" or "AAPL") or an Indian
+  fund by name; enter **fractional quantity**, **price in the asset's own currency**, and a **date**
+  (calendar picker or typed dd/mm/yyyy).
+- **Holdings view** — per asset: ticker · qty held · today's change ($/₹ and %) · current value · total
+  gain/loss (each in its native currency); the **portfolio total and top graph are in USD**.
+- **Transactions view** — a toggle beside Holdings lists every buy/sell newest→oldest
+  (ticker · action · price · qty · date).
+- **Buy more / sell / edit / delete** — add lots, sell holdings, edit any transaction, delete a single
+  transaction or an entire holding.
+- **On-device updates** — prices refresh on open, while open, and (optionally) in the background;
+  US via Finnhub, Indian NAVs via mfapi.in, USD/INR via open.er-api.com. All stored in on-device SQLite.
 
 ## What it does
 
@@ -26,23 +44,45 @@ later stages (multi-user accounts, alerts, more asset classes) can layer on clea
 - **Base-currency normalization** — INR and USD holdings are converted to a single display
   currency (default USD, configurable).
 
-## Architecture
+## Architecture (Stage 2)
 
 ```
-mobile/  (Expo / React Native + TypeScript)   →   backend/  (FastAPI + SQLite + APScheduler)
-                                                     ├─ providers: Finnhub (US), mfapi.in (IN MF), FX
-                                                     ├─ scheduler: 15-min US, daily IN MF, hourly FX, daily snapshot
-                                                     └─ REST API: holdings CRUD, portfolio, history, search
+mobile/  (Expo / React Native + TypeScript) — fully self-contained
+  app/            expo-router screens: Portfolio, add-asset, trade, asset/[key], transaction/[id], settings
+  components/     PortfolioChart (react-native-svg), HoldingRow, TransactionRow, DateField, TransactionForm, ...
+  db/             expo-sqlite storage: transactions, assets, price_latest, price_history, fx_rates, settings
+  services/       providers (finnhub, indiaMf, fx), prices (refresh), portfolio (holdings/history math),
+                  lots (pure math, unit-tested), background (expo-background-task)
+  hooks/          React Query hooks over SQLite + refresh triggers
 ```
 
-The backend owns the update cadence; the mobile app just polls `/portfolio` every ~60s while open.
+Holdings are **derived from transactions** (average-cost). There is **no server**: the app fetches
+prices directly and stores everything on-device. Packaged to an APK with **EAS Build** (`eas.json`).
 
 ### Data sources (all free)
 | Data | Provider | Notes |
 |---|---|---|
-| US equities / ETFs | [Finnhub](https://finnhub.io) | Free tier ~60 req/min. Requires a free API key. |
-| Indian mutual fund NAVs | [mfapi.in](https://www.mfapi.in) | Keyless; latest + full historical NAV by AMFI scheme code. |
+| US equities / ETFs | [Finnhub](https://finnhub.io) | Free tier; searches by symbol **and** name. Key embedded in `app.json` `extra.finnhubApiKey` (personal free key; rotate at finnhub.io). |
+| Indian mutual fund NAVs | [mfapi.in](https://www.mfapi.in) | Keyless; search by name, latest + full historical NAV. |
 | USD/INR FX | [open.er-api.com](https://open.er-api.com) | Keyless daily rates. |
+
+## Develop / verify the mobile app
+```bash
+cd mobile
+npm install
+npm run typecheck    # tsc --noEmit
+npm test             # offline lot/currency math test
+npx expo start       # optional: run in Expo Go on the same Wi-Fi (dev only)
+npx expo export --platform android   # full bundle sanity check
+```
+Build the installable APK with `eas build -p android --profile preview` (see
+**[BUILD-APK-WINDOWS.md](BUILD-APK-WINDOWS.md)** for the non-technical walkthrough).
+
+---
+
+## Legacy (Stage 1 — client/server, no longer used)
+The sections below describe the original Python backend. The Stage 2 app does **not** use it; it is
+kept only for reference.
 
 ## Backend — setup & run
 

@@ -1,6 +1,6 @@
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
-import type { RangeKey } from "@/api/types";
+import type { RangeKey } from "@/db/types";
 import { colors, spacing } from "@/theme";
 
 const RANGES: RangeKey[] = ["1D", "1W", "1M", "3M", "1Y", "ALL"];

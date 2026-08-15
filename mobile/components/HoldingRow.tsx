@@ -1,7 +1,15 @@
-import { Alert, Pressable, StyleSheet, Text, View } from "react-native";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 
-import type { AssetType, HoldingWithValue } from "@/api/types";
-import { colors, formatCurrency, formatPct, gainColor, spacing } from "@/theme";
+import type { AssetType, Holding } from "@/db/types";
+import {
+  colors,
+  formatCurrency,
+  formatPct,
+  formatQty,
+  formatSignedCurrency,
+  gainColor,
+  spacing,
+} from "@/theme";
 
 const TYPE_LABEL: Record<AssetType, string> = {
   us_equity: "US Stock",
@@ -10,45 +18,32 @@ const TYPE_LABEL: Record<AssetType, string> = {
 };
 
 interface Props {
-  holding: HoldingWithValue;
-  baseCurrency: string;
-  onDelete: (id: number) => void;
+  holding: Holding;
+  onPress: (h: Holding) => void;
 }
 
-export function HoldingRow({ holding, baseCurrency, onDelete }: Props) {
-  const confirmDelete = () => {
-    Alert.alert("Remove holding", `Remove ${holding.display_name || holding.key}?`, [
-      { text: "Cancel", style: "cancel" },
-      { text: "Remove", style: "destructive", onPress: () => onDelete(holding.id) },
-    ]);
-  };
-
-  const priceCcy = holding.price_currency ?? holding.currency;
-
+export function HoldingRow({ holding: h, onPress }: Props) {
+  const ccy = h.currency;
   return (
-    <Pressable style={styles.row} onLongPress={confirmDelete}>
+    <Pressable style={styles.row} onPress={() => onPress(h)}>
       <View style={styles.left}>
         <View style={styles.titleRow}>
           <Text style={styles.symbol} numberOfLines={1}>
-            {holding.key}
+            {h.key}
           </Text>
           <View style={styles.badge}>
-            <Text style={styles.badgeText}>{TYPE_LABEL[holding.asset_type]}</Text>
+            <Text style={styles.badgeText}>{TYPE_LABEL[h.asset_type]}</Text>
           </View>
         </View>
-        <Text style={styles.name} numberOfLines={1}>
-          {holding.display_name || "—"}
-        </Text>
-        <Text style={styles.sub}>
-          {holding.quantity} @ {formatCurrency(holding.price, priceCcy)}
+        <Text style={styles.sub}>{formatQty(h.qty)} @ {formatCurrency(h.price, ccy)}</Text>
+        <Text style={[styles.day, { color: gainColor(h.day_change) }]}>
+          Today {formatSignedCurrency(h.day_change, ccy)} ({formatPct(h.day_change_pct)})
         </Text>
       </View>
       <View style={styles.right}>
-        <Text style={styles.value}>
-          {formatCurrency(holding.market_value_base, baseCurrency)}
-        </Text>
-        <Text style={[styles.gain, { color: gainColor(holding.gain_base) }]}>
-          {formatCurrency(holding.gain_base, baseCurrency)} ({formatPct(holding.gain_pct)})
+        <Text style={styles.value}>{formatCurrency(h.market_value, ccy)}</Text>
+        <Text style={[styles.gain, { color: gainColor(h.gain) }]}>
+          {formatSignedCurrency(h.gain, ccy)} ({formatPct(h.gain_pct)})
         </Text>
       </View>
     </Pressable>
@@ -68,7 +63,7 @@ const styles = StyleSheet.create({
   },
   left: { flex: 1, marginRight: spacing.md },
   titleRow: { flexDirection: "row", alignItems: "center" },
-  symbol: { color: colors.text, fontSize: 16, fontWeight: "700" },
+  symbol: { color: colors.text, fontSize: 16, fontWeight: "700", flexShrink: 1 },
   badge: {
     marginLeft: spacing.sm,
     backgroundColor: colors.surfaceAlt,
@@ -77,8 +72,8 @@ const styles = StyleSheet.create({
     paddingVertical: 2,
   },
   badgeText: { color: colors.textDim, fontSize: 10, fontWeight: "600" },
-  name: { color: colors.textDim, fontSize: 13, marginTop: 2 },
-  sub: { color: colors.textDim, fontSize: 12, marginTop: 2 },
+  sub: { color: colors.textDim, fontSize: 12, marginTop: 3 },
+  day: { fontSize: 12, marginTop: 3 },
   right: { alignItems: "flex-end" },
   value: { color: colors.text, fontSize: 16, fontWeight: "700" },
   gain: { fontSize: 12, marginTop: 4 },

@@ -1,4 +1,3 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
 import { useState } from "react";
 import {
@@ -13,49 +12,22 @@ import {
   View,
 } from "react-native";
 
-import { api } from "@/api/client";
-import type { SearchItem } from "@/api/types";
+import { TransactionForm } from "@/components/TransactionForm";
+import type { SearchResult } from "@/services/providers";
+import { useAddTransaction, useSearch } from "@/hooks/data";
 import { colors, spacing } from "@/theme";
 
 type Market = "us" | "in_mf";
 
 export default function AddAssetScreen() {
   const router = useRouter();
-  const queryClient = useQueryClient();
-
   const [market, setMarket] = useState<Market>("us");
   const [query, setQuery] = useState("");
   const [submitted, setSubmitted] = useState("");
-  const [selected, setSelected] = useState<SearchItem | null>(null);
-  const [quantity, setQuantity] = useState("");
-  const [avgCost, setAvgCost] = useState("");
+  const [selected, setSelected] = useState<SearchResult | null>(null);
 
-  const searchQuery = useQuery({
-    queryKey: ["search", market, submitted],
-    queryFn: () => api.search(submitted, market),
-    enabled: submitted.length > 0,
-  });
-
-  const createMutation = useMutation({
-    mutationFn: () => {
-      if (!selected) throw new Error("select an asset");
-      return api.createHolding({
-        asset_type: selected.asset_type,
-        key: selected.key,
-        display_name: selected.display_name,
-        quantity: Number(quantity),
-        avg_cost: avgCost ? Number(avgCost) : 0,
-        currency: selected.currency,
-      });
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["portfolio"] });
-      queryClient.invalidateQueries({ queryKey: ["history"] });
-      router.back();
-    },
-  });
-
-  const canSubmit = selected && Number(quantity) > 0 && !createMutation.isPending;
+  const searchQuery = useSearch(market, submitted);
+  const addTx = useAddTransaction();
 
   const runSearch = () => {
     setSelected(null);
@@ -67,115 +39,99 @@ export default function AddAssetScreen() {
       style={styles.container}
       behavior={Platform.OS === "ios" ? "padding" : undefined}
     >
-      <View style={styles.marketRow}>
-        {(["us", "in_mf"] as Market[]).map((m) => (
-          <Pressable
-            key={m}
-            style={[styles.marketChip, market === m && styles.marketChipActive]}
-            onPress={() => {
-              setMarket(m);
-              setSelected(null);
-              setSubmitted("");
-            }}
-          >
-            <Text style={[styles.marketText, market === m && styles.marketTextActive]}>
-              {m === "us" ? "US Stocks & ETFs" : "India Mutual Funds"}
-            </Text>
-          </Pressable>
-        ))}
-      </View>
-
-      <View style={styles.searchRow}>
-        <TextInput
-          style={styles.input}
-          placeholder={market === "us" ? "Search ticker e.g. AAPL" : "Search fund name"}
-          placeholderTextColor={colors.textDim}
-          value={query}
-          onChangeText={setQuery}
-          autoCapitalize={market === "us" ? "characters" : "none"}
-          onSubmitEditing={runSearch}
-          returnKeyType="search"
-        />
-        <Pressable style={styles.searchBtn} onPress={runSearch}>
-          <Text style={styles.btnText}>Search</Text>
-        </Pressable>
-      </View>
-
-      {searchQuery.isFetching && (
-        <ActivityIndicator color={colors.accent} style={{ marginTop: spacing.md }} />
-      )}
-      {searchQuery.isError && (
-        <Text style={styles.error}>Search failed: {String(searchQuery.error)}</Text>
-      )}
-
       {!selected && (
-        <FlatList
-          style={styles.results}
-          data={searchQuery.data ?? []}
-          keyExtractor={(item) => `${item.asset_type}:${item.key}`}
-          keyboardShouldPersistTaps="handled"
-          renderItem={({ item }) => (
-            <Pressable style={styles.resultRow} onPress={() => setSelected(item)}>
-              <Text style={styles.resultKey}>{item.key}</Text>
-              <Text style={styles.resultName} numberOfLines={2}>
-                {item.display_name}
-              </Text>
+        <>
+          <View style={styles.marketRow}>
+            {(["us", "in_mf"] as Market[]).map((m) => (
+              <Pressable
+                key={m}
+                style={[styles.marketChip, market === m && styles.marketChipActive]}
+                onPress={() => {
+                  setMarket(m);
+                  setSubmitted("");
+                }}
+              >
+                <Text style={[styles.marketText, market === m && styles.marketTextActive]}>
+                  {m === "us" ? "US Stocks & ETFs" : "India Mutual Funds"}
+                </Text>
+              </Pressable>
+            ))}
+          </View>
+
+          <View style={styles.searchRow}>
+            <TextInput
+              style={styles.input}
+              placeholder={market === "us" ? "Search 'apple' or 'AAPL'" : "Search fund name"}
+              placeholderTextColor={colors.textDim}
+              value={query}
+              onChangeText={setQuery}
+              autoCapitalize="none"
+              onSubmitEditing={runSearch}
+              returnKeyType="search"
+            />
+            <Pressable style={styles.searchBtn} onPress={runSearch}>
+              <Text style={styles.btnText}>Search</Text>
             </Pressable>
+          </View>
+
+          {searchQuery.isFetching && (
+            <ActivityIndicator color={colors.accent} style={{ marginTop: spacing.md }} />
           )}
-          ListEmptyComponent={
-            submitted && !searchQuery.isFetching ? (
-              <Text style={styles.hint}>No results for “{submitted}”.</Text>
-            ) : null
-          }
-        />
+          {searchQuery.isError && (
+            <Text style={styles.error}>Search failed. Check your connection and try again.</Text>
+          )}
+
+          <FlatList
+            style={styles.results}
+            data={searchQuery.data ?? []}
+            keyExtractor={(item) => `${item.asset_type}:${item.key}`}
+            keyboardShouldPersistTaps="handled"
+            renderItem={({ item }) => (
+              <Pressable style={styles.resultRow} onPress={() => setSelected(item)}>
+                <Text style={styles.resultKey}>{item.key}</Text>
+                <Text style={styles.resultName} numberOfLines={2}>
+                  {item.name}
+                </Text>
+              </Pressable>
+            )}
+            ListEmptyComponent={
+              submitted && !searchQuery.isFetching ? (
+                <Text style={styles.hint}>No results for “{submitted}”.</Text>
+              ) : null
+            }
+          />
+        </>
       )}
 
       {selected && (
         <View style={styles.form}>
-          <View style={styles.selectedCard}>
-            <Text style={styles.resultKey}>{selected.key}</Text>
-            <Text style={styles.resultName}>{selected.display_name}</Text>
-            <Text style={styles.hint}>Priced in {selected.currency}</Text>
-            <Pressable onPress={() => setSelected(null)}>
-              <Text style={styles.changeLink}>Change</Text>
-            </Pressable>
-          </View>
-
-          <Text style={styles.fieldLabel}>Quantity / Units</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="e.g. 10"
-            placeholderTextColor={colors.textDim}
-            value={quantity}
-            onChangeText={setQuantity}
-            keyboardType="decimal-pad"
-          />
-
-          <Text style={styles.fieldLabel}>
-            Average Cost ({selected.currency}, optional)
-          </Text>
-          <TextInput
-            style={styles.input}
-            placeholder="e.g. 150"
-            placeholderTextColor={colors.textDim}
-            value={avgCost}
-            onChangeText={setAvgCost}
-            keyboardType="decimal-pad"
-          />
-
-          {createMutation.isError && (
-            <Text style={styles.error}>{String(createMutation.error)}</Text>
-          )}
-
-          <Pressable
-            style={[styles.submitBtn, !canSubmit && styles.submitBtnDisabled]}
-            disabled={!canSubmit}
-            onPress={() => createMutation.mutate()}
-          >
-            <Text style={styles.btnText}>
-              {createMutation.isPending ? "Adding…" : "Add to Portfolio"}
-            </Text>
+          <Pressable onPress={() => setSelected(null)}>
+            <Text style={styles.changeLink}>‹ Change asset</Text>
           </Pressable>
+          <View style={{ height: spacing.md }} />
+          <TransactionForm
+            assetLabel={`${selected.key} — ${selected.name}`}
+            currency={selected.currency}
+            fixedAction="buy"
+            submitLabel="Add Purchase"
+            submitting={addTx.isPending}
+            error={addTx.isError ? "Could not save. Try again." : null}
+            onSubmit={(v) =>
+              addTx.mutate(
+                {
+                  asset_type: selected.asset_type,
+                  key: selected.key,
+                  name: selected.name,
+                  currency: selected.currency,
+                  action: "buy",
+                  qty: v.qty,
+                  price: v.price,
+                  trade_date: v.trade_date,
+                },
+                { onSuccess: () => router.back() },
+              )
+            }
+          />
         </View>
       )}
     </KeyboardAvoidingView>
@@ -223,23 +179,8 @@ const styles = StyleSheet.create({
   },
   resultKey: { color: colors.text, fontWeight: "700", fontSize: 15 },
   resultName: { color: colors.textDim, fontSize: 13, marginTop: 2 },
-  form: { marginTop: spacing.lg },
-  selectedCard: {
-    backgroundColor: colors.surface,
-    borderRadius: 10,
-    padding: spacing.md,
-    marginBottom: spacing.lg,
-  },
-  changeLink: { color: colors.accent, marginTop: spacing.sm, fontWeight: "600" },
-  fieldLabel: { color: colors.textDim, marginBottom: spacing.xs, marginTop: spacing.md },
-  submitBtn: {
-    backgroundColor: colors.accent,
-    borderRadius: 10,
-    paddingVertical: spacing.md,
-    alignItems: "center",
-    marginTop: spacing.xl,
-  },
-  submitBtnDisabled: { backgroundColor: colors.surfaceAlt },
+  form: { flex: 1 },
+  changeLink: { color: colors.accent, fontWeight: "600", fontSize: 15 },
   hint: { color: colors.textDim, marginTop: spacing.sm },
   error: { color: colors.negative, marginTop: spacing.md },
 });

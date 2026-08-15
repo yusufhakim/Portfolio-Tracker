@@ -39,3 +39,43 @@ export function gainColor(value: number | null | undefined): string {
   if (value === null || value === undefined) return colors.textDim;
   return value >= 0 ? colors.positive : colors.negative;
 }
+
+/** Signed currency, e.g. "+$12.30" / "-₹45.00". */
+export function formatSignedCurrency(
+  value: number | null | undefined, ccy: string,
+): string {
+  if (value === null || value === undefined) return "—";
+  const sign = value >= 0 ? "+" : "-";
+  return `${sign}${formatCurrency(Math.abs(value), ccy)}`;
+}
+
+/** Quantity with up to 4 decimals, trailing zeros trimmed. */
+export function formatQty(value: number | null | undefined): string {
+  if (value === null || value === undefined) return "—";
+  return Number(value.toFixed(4)).toString();
+}
+
+// yyyy-mm-dd <-> dd/mm/yyyy helpers for the date field.
+export function isoToDisplay(iso: string): string {
+  const [y, m, d] = iso.split("-");
+  if (!y || !m || !d) return iso;
+  return `${d}/${m}/${y}`;
+}
+
+export function displayToIso(display: string): string | null {
+  const m = display.trim().match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  if (!m) return null;
+  const d = Number(m[1]);
+  const mo = Number(m[2]);
+  const y = Number(m[3]);
+  if (mo < 1 || mo > 12 || d < 1 || d > 31) return null;
+  const dt = new Date(Date.UTC(y, mo - 1, d));
+  if (dt.getUTCMonth() !== mo - 1 || dt.getUTCDate() !== d) return null; // invalid date
+  return `${y.toString().padStart(4, "0")}-${mo.toString().padStart(2, "0")}-${d
+    .toString()
+    .padStart(2, "0")}`;
+}
+
+export function todayIso(): string {
+  return new Date().toISOString().slice(0, 10);
+}
