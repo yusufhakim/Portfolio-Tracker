@@ -44,7 +44,7 @@ echo   It will connect to the price engine at: !EXPO_PUBLIC_API_URL!
 echo.
 echo   In a moment a QR CODE will appear below.
 echo   Open the "Expo Go" app on your phone and scan it.
-echo   (Your phone and this computer must be on the SAME Wi-Fi.)
+echo   Your phone and this computer must be on the SAME Wi-Fi.
 echo ============================================================
 echo.
 

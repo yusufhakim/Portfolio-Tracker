@@ -51,7 +51,7 @@ if errorlevel 1 (
     echo.
     echo   Please install it first:
     echo     1. Go to  https://nodejs.org/
-    echo     2. Click the button that says "LTS" (the recommended one).
+    echo     2. Click the green "Get Node.js" button.
     echo     3. Run the file you downloaded and click Next / Next / Install.
     echo     4. After it finishes, run this setup file again.
     echo.
@@ -83,7 +83,7 @@ if errorlevel 1 (
 
 REM ---- Ask for the Finnhub API key and write .env --------------------
 echo.
-echo   Now paste your Finnhub API key (for US stock prices).
+echo   Now paste your Finnhub API key for US stock prices.
 echo   Tip: right-click in this window to paste, then press Enter.
 echo.
 set "FINNHUB_KEY="
