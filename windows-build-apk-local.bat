@@ -18,8 +18,14 @@ echo.
 where node >nul 2>&1
 if errorlevel 1 goto :noNode
 
-REM ---- Find Android Studio's own Java (JBR, a compatible version) ----
+REM ---- Prefer a real JDK 17/21 (Android Studio stores downloaded JDKs here) ----
+REM  Gradle needs Java 17-24; some machines ship Java 25, which is too new.
 set "JBR="
+for /d %%D in ("%USERPROFILE%\.jdks\*17*") do if not defined JBR if exist "%%~fD\bin\java.exe" set "JBR=%%~fD"
+if not defined JBR for /d %%D in ("%USERPROFILE%\.jdks\*21*") do if not defined JBR if exist "%%~fD\bin\java.exe" set "JBR=%%~fD"
+if not defined JBR for /d %%D in ("%USERPROFILE%\.jdks\*jdk-17*") do if not defined JBR if exist "%%~fD\bin\java.exe" set "JBR=%%~fD"
+
+REM ---- Otherwise fall back to Android Studio's bundled Java ----
 for %%P in (
   "%ProgramFiles%\Android\Android Studio\jbr"
   "%ProgramW6432%\Android\Android Studio\jbr"

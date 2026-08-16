@@ -46,9 +46,11 @@ error you can get when your PC's Java is newer than the build tools support.
    `windows-build-apk-local.bat` once (it generates it), or in `mobile` run `npx expo prebuild -p android`.
 2. Wait for **“Gradle sync”** to finish (bottom status bar). If it prompts to install any SDK components,
    accept.
-3. If sync fails complaining about the JDK/Java version: open **File → Settings → Build, Execution,
-   Deployment → Build Tools → Gradle**, set **“Gradle JDK”** to the **jbr / Embedded JDK (21)** entry,
-   and sync again.
+3. If sync fails with **“Unsupported class file major version”** (your Java is too new), open
+   **File → Settings → Build, Execution, Deployment → Build Tools → Gradle**. Click the **“Gradle JDK”**
+   dropdown → **“Download JDK…”**, choose **Version 17** and any vendor (e.g. Amazon Corretto), click
+   **Download**, then **Apply → OK** and sync again. (Android builds want Java 17; Java 24/25 are too new
+   for the current Gradle.)
 4. Open the **Build Variants** panel (left edge, or **View → Tool Windows → Build Variants**) and set the
    `app` module's variant to **release**.
 5. **Build → Build App Bundle(s) / APK(s) → Build APK(s).** When the notification appears, click
