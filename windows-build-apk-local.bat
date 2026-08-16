@@ -1,7 +1,8 @@
 @echo off
 REM ============================================================
 REM  Portfolio Tracker - Build the APK on THIS computer
-REM  Uses the Android SDK that comes with Android Studio.
+REM  Uses the Java + Android SDK that ship with Android Studio,
+REM  so it works even if your system Java is too new for Gradle.
 REM  Produces a standalone, installable app-release.apk.
 REM ============================================================
 setlocal enabledelayedexpansion
@@ -17,6 +18,29 @@ echo.
 where node >nul 2>&1
 if errorlevel 1 goto :noNode
 
+REM ---- Find Android Studio's own Java (JBR, a compatible version) ----
+set "JBR="
+for %%P in (
+  "%ProgramFiles%\Android\Android Studio\jbr"
+  "%ProgramW6432%\Android\Android Studio\jbr"
+  "%ProgramFiles(x86)%\Android\Android Studio\jbr"
+  "%LOCALAPPDATA%\Programs\Android Studio\jbr"
+) do if not defined JBR if exist "%%~P\bin\java.exe" set "JBR=%%~P"
+
+if not defined JBR (
+  for /f "tokens=2,*" %%a in ('reg query "HKLM\SOFTWARE\Android Studio" /v Path 2^>nul ^| findstr /i "REG_SZ"') do (
+    if exist "%%b\jbr\bin\java.exe" set "JBR=%%b\jbr"
+  )
+)
+if not defined JBR (
+  for /f "tokens=2,*" %%a in ('reg query "HKCU\SOFTWARE\Android Studio" /v Path 2^>nul ^| findstr /i "REG_SZ"') do (
+    if exist "%%b\jbr\bin\java.exe" set "JBR=%%b\jbr"
+  )
+)
+if not defined JBR goto :noJava
+set "JAVA_HOME=%JBR%"
+echo Using Java from Android Studio:  %JBR%
+
 REM ---- Find the Android SDK ----
 set "SDK="
 if exist "%LOCALAPPDATA%\Android\Sdk\platform-tools" set "SDK=%LOCALAPPDATA%\Android\Sdk"
@@ -25,14 +49,7 @@ if not defined SDK if defined ANDROID_SDK_ROOT if exist "%ANDROID_SDK_ROOT%\plat
 if not defined SDK goto :noSdk
 set "ANDROID_HOME=%SDK%"
 set "ANDROID_SDK_ROOT=%SDK%"
-echo Using Android SDK:  %SDK%
-
-REM ---- Prefer the Java that ships inside Android Studio ----
-set "JBR="
-if exist "%ProgramFiles%\Android\Android Studio\jbr\bin\java.exe" set "JBR=%ProgramFiles%\Android\Android Studio\jbr"
-if not defined JBR if exist "%LOCALAPPDATA%\Programs\Android Studio\jbr\bin\java.exe" set "JBR=%LOCALAPPDATA%\Programs\Android Studio\jbr"
-if defined JBR set "JAVA_HOME=%JBR%"
-if defined JAVA_HOME echo Using Java:         %JAVA_HOME%
+echo Using Android SDK:               %SDK%
 echo.
 
 cd mobile
@@ -46,9 +63,11 @@ echo [2/3] Generating the Android project...
 call npx expo prebuild --platform android --clean
 if errorlevel 1 goto :fail
 
-REM Point Gradle at the SDK (forward slashes for local.properties)
+REM Point Gradle at the SDK and at Android Studio's Java (forward slashes).
 set "SDKF=!SDK:\=/!"
+set "JBRF=!JBR:\=/!"
 > android\local.properties echo sdk.dir=!SDKF!
+>> android\gradle.properties echo org.gradle.java.home=!JBRF!
 
 echo.
 echo [3/3] Building the release APK. The FIRST build downloads tools and
@@ -62,9 +81,9 @@ echo ============================================================
 echo   SUCCESS!  Your installable app is here:
 echo   mobile\android\app\build\outputs\apk\release\app-release.apk
 echo.
-echo   Copy that file to your phone (email it to yourself, or use a
-echo   USB cable) and tap it to install. Allow "install unknown apps"
-echo   if Android asks.
+echo   Put that file on your phone (upload to Google Drive and open it
+echo   on the phone, or use a USB cable) and tap it to install.
+echo   Allow "install unknown apps" if Android asks.
 echo ============================================================
 pause
 exit /b 0
@@ -72,6 +91,13 @@ exit /b 0
 :noNode
 echo   XX  Node.js was not found. Install it from https://nodejs.org/
 echo       then run this file again.
+pause
+exit /b 1
+
+:noJava
+echo   XX  Could not find Android Studio's Java automatically.
+echo   Easiest fix: build inside Android Studio instead - see
+echo   BUILD-APK-WINDOWS.md, the "build inside Android Studio" note.
 pause
 exit /b 1
 

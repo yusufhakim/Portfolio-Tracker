@@ -36,10 +36,24 @@ SDK). You can then close it — the build script uses that SDK directly.
 2. Tap the file to install. Allow **“install unknown apps”** if Android asks.
 3. Open **Portfolio Tracker**. 🎉
 
-> Prefer clicking in Android Studio instead of the script? Open the **`mobile\android`** folder in
-> Android Studio, wait for “Gradle sync” to finish, set the **Build Variant** to **release** (View →
-> Tool Windows → Build Variants), then **Build → Build App Bundle(s) / APK(s) → Build APK(s)**. Click
-> **locate** to find `app-release.apk`.
+### Build inside Android Studio (works even if your system Java is too new)
+
+Android Studio uses **its own bundled Java**, so this avoids the "Unsupported class file major version"
+error you can get when your PC's Java is newer than the build tools support.
+
+1. The build script already created the native project. Open **Android Studio → Open** and select the
+   folder **`…\mobile\android`** (inside your extracted project). If it isn't there yet, first run
+   `windows-build-apk-local.bat` once (it generates it), or in `mobile` run `npx expo prebuild -p android`.
+2. Wait for **“Gradle sync”** to finish (bottom status bar). If it prompts to install any SDK components,
+   accept.
+3. If sync fails complaining about the JDK/Java version: open **File → Settings → Build, Execution,
+   Deployment → Build Tools → Gradle**, set **“Gradle JDK”** to the **jbr / Embedded JDK (21)** entry,
+   and sync again.
+4. Open the **Build Variants** panel (left edge, or **View → Tool Windows → Build Variants**) and set the
+   `app` module's variant to **release**.
+5. **Build → Build App Bundle(s) / APK(s) → Build APK(s).** When the notification appears, click
+   **locate** to find `app-release.apk` (under `mobile\android\app\build\outputs\apk\release\`).
+6. Copy that APK to your phone (Google Drive or USB) and install it.
 
 ---
 
