@@ -4,10 +4,46 @@ This turns the project into a **real Android app** you install on your phone. Af
 need your computer** to use it — no black windows, no Wi-Fi link to your PC. The app runs entirely on
 your phone and updates prices by itself.
 
-You only do this **once** (and again later if you want to update the app). The actual build happens in
-**Expo's free cloud** — your PC just starts it.
+You only do this **once** (and again later if you want to update the app).
+
+There are two ways to build. **If you have Android Studio installed, use Option B — it's the most
+reliable.** If not, Option A builds in Expo's free cloud.
 
 ---
+
+## Option B — Build on your own computer (recommended if you have Android Studio)
+
+Android Studio comes with everything needed to build (the Android SDK + Java), so this avoids the cloud
+builder entirely.
+
+### One-time check
+Open **Android Studio** at least once and let it finish its first-time setup (it downloads the Android
+SDK). You can then close it — the build script uses that SDK directly.
+
+### Build it
+1. Get the latest code: on your Desktop delete the old `Projects-…` folder and ZIP, then download a
+   fresh ZIP from **https://github.com/yusufhakim/Projects** (green **Code → Download ZIP**) and
+   **Extract All…** to your Desktop.
+2. Open the folder and **double-click `windows-build-apk-local.bat`**.
+   (If it flashes shut, use the address-bar trick: type `cmd`, Enter, then run `windows-build-apk-local.bat`.)
+3. It installs files, generates the Android project, and builds. The **first build takes 10–20 minutes**
+   (it downloads build tools once). When it's done it prints:
+   `mobile\android\app\build\outputs\apk\release\app-release.apk`
+
+### Put it on your phone
+1. Copy that **`app-release.apk`** to your phone — easiest is to **email it to yourself** and open the
+   attachment on the phone, or connect the phone by USB and copy it over.
+2. Tap the file to install. Allow **“install unknown apps”** if Android asks.
+3. Open **Portfolio Tracker**. 🎉
+
+> Prefer clicking in Android Studio instead of the script? Open the **`mobile\android`** folder in
+> Android Studio, wait for “Gradle sync” to finish, set the **Build Variant** to **release** (View →
+> Tool Windows → Build Variants), then **Build → Build App Bundle(s) / APK(s) → Build APK(s)**. Click
+> **locate** to find `app-release.apk`.
+
+---
+
+## Option A — Build in Expo's free cloud
 
 ## What you need
 - **Node.js** installed (you already have this from before — if not, get it at https://nodejs.org/).

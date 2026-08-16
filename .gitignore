@@ -12,6 +12,10 @@ mobile/dist/
 mobile/web-build/
 *.log
 
+# Generated native projects (recreated by `expo prebuild`)
+mobile/android/
+mobile/ios/
+
 # OS / editor
 .DS_Store
 .idea/
