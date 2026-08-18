@@ -53,7 +53,12 @@ error you can get when your PC's Java is newer than the build tools support.
    for the current Gradle.)
 4. Open the **Build Variants** panel (left edge, or **View → Tool Windows → Build Variants**) and set the
    `app` module's variant to **release**.
-5. **Build → Build App Bundle(s) / APK(s) → Build APK(s).** When the notification appears, click
+   - A red **“C/C++ Configuration Problem”** panel may appear here — that's just Android Studio setting
+     up code hints; it's **harmless and does not affect the build**. Ignore it.
+5. **(Recommended, much faster)** In the Project panel open **`gradle.properties`** and change
+   `reactNativeArchitectures=armeabi-v7a,arm64-v8a,x86,x86_64` to just
+   `reactNativeArchitectures=arm64-v8a` (builds only for modern 64-bit phones), then re-sync.
+6. **Build → Build App Bundle(s) / APK(s) → Build APK(s).** When the notification appears, click
    **locate** to find `app-release.apk` (under `mobile\android\app\build\outputs\apk\release\`).
 6. Copy that APK to your phone (Google Drive or USB) and install it.
 

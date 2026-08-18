@@ -74,6 +74,8 @@ set "SDKF=!SDK:\=/!"
 set "JBRF=!JBR:\=/!"
 > android\local.properties echo sdk.dir=!SDKF!
 >> android\gradle.properties echo org.gradle.java.home=!JBRF!
+REM Build only for modern 64-bit phones (arm64) - much faster, smaller APK.
+>> android\gradle.properties echo reactNativeArchitectures=arm64-v8a
 
 echo.
 echo [3/3] Building the release APK. The FIRST build downloads tools and
