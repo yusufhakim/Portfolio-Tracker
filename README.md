@@ -29,9 +29,10 @@ toggle across time ranges.
 - **Buy more / sell / edit / delete** — add lots, sell holdings, tap a transaction to edit it, or tap
   the **🗑** on any transaction row to delete a single transaction (delete an entire holding from its
   detail screen).
-- **Import from Excel / CSV** — Settings → “Import from Excel / CSV” bulk-adds buy/sell transactions
-  from a spreadsheet with columns **Market · Symbol · Name · Action · Quantity · Price · Date** (rows
-  are validated with per-row errors; imported assets get prices + history automatically).
+- **Import from Excel / CSV** — Settings → “Download template” saves a ready-made `.xlsx`
+  (columns **Market · Symbol · Action · Quantity · Price · Date**); fill it and “Choose file & import”
+  to bulk-add buy/sell transactions (rows validated with per-row errors; imported assets get prices +
+  history automatically).
 - **On-device updates** — prices refresh on open, while open, and (optionally) in the background;
   US via Finnhub, Indian NAVs via mfapi.in, USD/INR via open.er-api.com. All stored in on-device SQLite.
 - **Performance graph** pinned at the top with **1D / 1W / 1M / 3M / 1Y / ALL** range toggles.

@@ -3,6 +3,7 @@ import { useState } from "react";
 import { Alert, Pressable, ScrollView, StyleSheet, Switch, Text, View } from "react-native";
 
 import { isBackgroundEnabled, setBackgroundEnabled } from "@/services/background";
+import { downloadTemplate } from "@/services/importTransactions";
 import { useImportTransactions, useManualRefresh } from "@/hooks/data";
 import { colors, spacing } from "@/theme";
 
@@ -11,6 +12,18 @@ export default function SettingsScreen() {
   const refresh = useManualRefresh();
   const importTx = useImportTransactions();
   const [saving, setSaving] = useState(false);
+  const [templating, setTemplating] = useState(false);
+
+  const getTemplate = async () => {
+    setTemplating(true);
+    try {
+      await downloadTemplate();
+    } catch (e) {
+      Alert.alert("Couldn't create template", e instanceof Error ? e.message : String(e));
+    } finally {
+      setTemplating(false);
+    }
+  };
 
   const bgQuery = useQuery({
     queryKey: ["bg-enabled"],
@@ -79,15 +92,26 @@ export default function SettingsScreen() {
       <View style={styles.card}>
         <Text style={styles.title}>Import from Excel / CSV</Text>
         <Text style={styles.desc}>
-          Bulk-add buy and sell transactions from a spreadsheet. Use a header row with these columns:
+          Bulk-add buy and sell transactions from a spreadsheet with these columns:
         </Text>
-        <Text style={styles.code}>
-          Market · Symbol · Name · Action · Quantity · Price · Date
-        </Text>
+        <Text style={styles.code}>Market · Symbol · Action · Quantity · Price · Date</Text>
         <Text style={styles.desc}>
           • Market: “US” or “India”  • Symbol: ticker (US) or AMFI scheme code (India)  • Action:
           Buy or Sell  • Price: in the asset's own currency  • Date: dd/mm/yyyy
         </Text>
+        <Text style={styles.desc}>
+          Step 1: tap “Download template” and save it to your phone. Fill in your rows, then Step 2:
+          tap “Choose file & import”.
+        </Text>
+        <Pressable
+          style={[styles.templateBtn, templating && styles.importBtnDisabled]}
+          onPress={getTemplate}
+          disabled={templating}
+        >
+          <Text style={styles.templateText}>
+            {templating ? "Preparing…" : "⬇ Download template"}
+          </Text>
+        </Pressable>
         <Pressable
           style={[styles.importBtn, importTx.isPending && styles.importBtnDisabled]}
           onPress={runImport}
@@ -135,12 +159,20 @@ const styles = StyleSheet.create({
     marginBottom: spacing.lg,
   },
   refreshText: { color: "#fff", fontWeight: "700", fontSize: 15 },
+  templateBtn: {
+    backgroundColor: colors.surfaceAlt,
+    borderRadius: 10,
+    paddingVertical: spacing.md,
+    alignItems: "center",
+    marginTop: spacing.md,
+  },
+  templateText: { color: colors.text, fontWeight: "700", fontSize: 15 },
   importBtn: {
     backgroundColor: colors.accent,
     borderRadius: 10,
     paddingVertical: spacing.md,
     alignItems: "center",
-    marginTop: spacing.md,
+    marginTop: spacing.sm,
   },
   importBtnDisabled: { backgroundColor: colors.surfaceAlt },
   note: { color: colors.textDim, fontSize: 12, marginTop: spacing.xs, lineHeight: 18 },

@@ -2,6 +2,13 @@
 
 A running log of the Portfolio Tracker project. Newest first.
 
+## Stage 2.3 — Import template download
+- Settings now has a **“Download template”** button that generates a ready-to-fill `.xlsx`
+  (headers + example rows) and opens the share sheet to save it anywhere on the phone — no need to
+  hand-create a file. Template columns simplified to **Market · Symbol · Action · Quantity · Price ·
+  Date** (the company-name column was dropped; imported names default to the symbol). Uses
+  `expo-sharing`.
+
 ## Stage 2.2 — Save/import reliability fixes
 - **Fix “Could not save” on Add Purchase and import failures:** the save no longer waits on the network
   price refresh (it runs in the background afterward), explicit SQLite transactions were removed and a
