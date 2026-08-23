@@ -29,20 +29,7 @@ toggle across time ranges.
   transaction or an entire holding.
 - **On-device updates** — prices refresh on open, while open, and (optionally) in the background;
   US via Finnhub, Indian NAVs via mfapi.in, USD/INR via open.er-api.com. All stored in on-device SQLite.
-
-## What it does
-
-- **Add / remove holdings** — search a US ticker (via Finnhub) or an Indian mutual fund by name
-  (via mfapi.in), enter quantity + average cost.
-- **Performance graph** pinned at the top of the portfolio with **1D / 1W / 1M / 3M / 1Y / ALL**
-  toggles.
-- **Automatic price updates**
-  - **US equities & ETFs** refresh every **15 minutes** during US market hours (well inside the
-    ≤20-minute target).
-  - **Indian mutual funds** refresh **once daily** at ~23:30 IST, after NAVs are published.
-  - **USD/INR FX** refreshes hourly so a mixed USD/INR portfolio is shown in one base currency.
-- **Base-currency normalization** — INR and USD holdings are converted to a single display
-  currency (default USD, configurable).
+- **Performance graph** pinned at the top with **1D / 1W / 1M / 3M / 1Y / ALL** range toggles.
 
 ## Architecture (Stage 2)
 
@@ -57,7 +44,9 @@ mobile/  (Expo / React Native + TypeScript) — fully self-contained
 ```
 
 Holdings are **derived from transactions** (average-cost). There is **no server**: the app fetches
-prices directly and stores everything on-device. Packaged to an APK with **EAS Build** (`eas.json`).
+prices directly and stores everything on-device. Packaged to an installable **APK** — built locally
+with Android Studio's toolchain (recommended, `windows-build-apk-local.bat`) or via **EAS Build**
+(`eas.json`). See **[BUILD-APK-WINDOWS.md](BUILD-APK-WINDOWS.md)**.
 
 ### Data sources (all free)
 | Data | Provider | Notes |
@@ -75,8 +64,13 @@ npm test             # offline lot/currency math test
 npx expo start       # optional: run in Expo Go on the same Wi-Fi (dev only)
 npx expo export --platform android   # full bundle sanity check
 ```
-Build the installable APK with `eas build -p android --profile preview` (see
-**[BUILD-APK-WINDOWS.md](BUILD-APK-WINDOWS.md)** for the non-technical walkthrough).
+**Build the installable APK** (Windows): double-click `windows-build-apk-local.bat` (uses Android
+Studio's SDK/JDK) → `mobile/android/app/build/outputs/apk/release/app-release.apk`. EAS cloud build
+(`eas build -p android --profile preview`) is an alternative. The
+**[BUILD-APK-WINDOWS.md](BUILD-APK-WINDOWS.md)** walkthrough covers both, plus the toolchain gotchas we
+hit (needs **JDK 17** — newer Java is rejected by Gradle; builds arm64-only for speed).
+
+Project history is in **[CHANGELOG.md](CHANGELOG.md)**.
 
 ---
 
@@ -149,4 +143,3 @@ Typecheck the app with `npm run typecheck`.
 ## Out of scope for Stage 1 (future stages)
 Multi-user auth & accounts, push/price alerts, transaction lots & realized-gain accounting, more
 asset classes (crypto/bonds), Postgres migration, and production deployment.
-```
