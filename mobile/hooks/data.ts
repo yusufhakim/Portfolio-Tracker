@@ -71,15 +71,17 @@ export function useSearch(market: "us" | "in_mf", query: string) {
 export function useAddTransaction() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (tx: TransactionInput) => {
-      const id = await insertTransaction(tx);
-      // fetch a price + backfill history for a possibly-new asset
-      await refreshNewAsset({
+    // The SAVE is only the DB insert — it must not fail because of the network.
+    mutationFn: (tx: TransactionInput) => insertTransaction(tx),
+    onSuccess: (_id, tx) => {
+      invalidateAll(qc);
+      // Fetch price + history in the background; never blocks or fails the save.
+      refreshNewAsset({
         asset_type: tx.asset_type, key: tx.key, name: tx.name, currency: tx.currency,
-      });
-      return id;
+      })
+        .then(() => invalidateAll(qc))
+        .catch(() => {});
     },
-    onSuccess: () => invalidateAll(qc),
   });
 }
 
@@ -133,9 +135,11 @@ export function useImportTransactions() {
       if (parsed.toInsert.length > 0) {
         const res = await insertTransactionsBulk(parsed.toInsert);
         inserted = res.inserted;
-        for (const a of res.assets) {
-          await refreshNewAsset(a); // price + history backfill (best-effort)
-        }
+        // Fetch prices/history in the background; don't fail the import if the
+        // network is unavailable.
+        Promise.allSettled(res.assets.map((a) => refreshNewAsset(a)))
+          .then(() => invalidateAll(qc))
+          .catch(() => {});
       }
       return {
         canceled: false,

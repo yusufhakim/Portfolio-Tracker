@@ -37,8 +37,11 @@ export default function SettingsScreen() {
         }
         Alert.alert("Import complete", parts.join("\n"));
       },
-      onError: () =>
-        Alert.alert("Import failed", "Couldn't read that file. Make sure it's an .xlsx or .csv."),
+      onError: (err) =>
+        Alert.alert(
+          "Import failed",
+          `${err instanceof Error ? err.message : String(err)}\n\nMake sure the file is an .xlsx or .csv with the columns above.`,
+        ),
     });
   };
 

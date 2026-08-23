@@ -9,7 +9,7 @@
 //   Price    — number, in the asset's own currency
 //   Date     — dd/mm/yyyy (also accepts a real Excel date cell)
 import * as DocumentPicker from "expo-document-picker";
-import * as FileSystem from "expo-file-system/legacy";
+import { File } from "expo-file-system";
 import * as XLSX from "xlsx";
 
 import type { AssetType, TransactionInput, TxAction } from "@/db/types";
@@ -100,9 +100,7 @@ export async function pickAndParseTransactions(): Promise<ImportResult> {
   }
 
   const uri = picked.assets[0].uri;
-  const b64 = await FileSystem.readAsStringAsync(uri, {
-    encoding: FileSystem.EncodingType.Base64,
-  });
+  const b64 = await new File(uri).base64();
   const wb = XLSX.read(b64, { type: "base64", cellDates: true });
   const sheet = wb.Sheets[wb.SheetNames[0]];
   const rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet, {

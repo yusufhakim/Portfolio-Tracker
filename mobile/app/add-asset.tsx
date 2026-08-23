@@ -115,7 +115,11 @@ export default function AddAssetScreen() {
             fixedAction="buy"
             submitLabel="Add Purchase"
             submitting={addTx.isPending}
-            error={addTx.isError ? "Could not save. Try again." : null}
+            error={
+              addTx.isError
+                ? `Could not save: ${addTx.error instanceof Error ? addTx.error.message : String(addTx.error)}`
+                : null
+            }
             onSubmit={(v) =>
               addTx.mutate(
                 {

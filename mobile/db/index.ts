@@ -16,7 +16,9 @@ let _db: SQLite.SQLiteDatabase | null = null;
 export async function getDb(): Promise<SQLite.SQLiteDatabase> {
   if (_db) return _db;
   _db = await SQLite.openDatabaseAsync(DB_NAME);
-  await _db.execAsync("PRAGMA journal_mode = WAL;");
+  // WAL for concurrent read/write; busy_timeout so a brief lock waits instead of
+  // throwing "database is locked" (which was failing saves during a background refresh).
+  await _db.execAsync("PRAGMA journal_mode = WAL; PRAGMA busy_timeout = 8000;");
   await migrate(_db);
   return _db;
 }
@@ -105,28 +107,26 @@ export async function insertTransactionsBulk(
   const db = await getDb();
   const created = new Date().toISOString();
   const assetMap = new Map<string, Asset>();
-  await db.withTransactionAsync(async () => {
-    for (const tx of txns) {
-      await db.runAsync(
-        `INSERT INTO transactions (asset_type, key, name, currency, action, qty, price, trade_date, created_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-        tx.asset_type, tx.key, tx.name, tx.currency, tx.action, tx.qty, tx.price, tx.trade_date, created,
-      );
-      const k = `${tx.asset_type}:${tx.key}`;
-      if (!assetMap.has(k)) {
-        assetMap.set(k, {
-          asset_type: tx.asset_type, key: tx.key, name: tx.name, currency: tx.currency,
-        });
-      }
+  for (const tx of txns) {
+    await db.runAsync(
+      `INSERT INTO transactions (asset_type, key, name, currency, action, qty, price, trade_date, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      tx.asset_type, tx.key, tx.name, tx.currency, tx.action, tx.qty, tx.price, tx.trade_date, created,
+    );
+    const k = `${tx.asset_type}:${tx.key}`;
+    if (!assetMap.has(k)) {
+      assetMap.set(k, {
+        asset_type: tx.asset_type, key: tx.key, name: tx.name, currency: tx.currency,
+      });
     }
-    for (const a of assetMap.values()) {
-      await db.runAsync(
-        `INSERT INTO assets (asset_type, key, name, currency) VALUES (?, ?, ?, ?)
-         ON CONFLICT(asset_type, key) DO UPDATE SET name = excluded.name, currency = excluded.currency`,
-        a.asset_type, a.key, a.name, a.currency,
-      );
-    }
-  });
+  }
+  for (const a of assetMap.values()) {
+    await db.runAsync(
+      `INSERT INTO assets (asset_type, key, name, currency) VALUES (?, ?, ?, ?)
+       ON CONFLICT(asset_type, key) DO UPDATE SET name = excluded.name, currency = excluded.currency`,
+      a.asset_type, a.key, a.name, a.currency,
+    );
+  }
   return { inserted: txns.length, assets: [...assetMap.values()] };
 }
 
@@ -189,12 +189,10 @@ export async function listAssets(): Promise<Asset[]> {
 /** Delete an asset and all its transactions + cached data. */
 export async function deleteAsset(assetType: AssetType, key: string): Promise<void> {
   const db = await getDb();
-  await db.withTransactionAsync(async () => {
-    await db.runAsync(`DELETE FROM transactions WHERE asset_type = ? AND key = ?`, assetType, key);
-    await db.runAsync(`DELETE FROM assets WHERE asset_type = ? AND key = ?`, assetType, key);
-    await db.runAsync(`DELETE FROM price_latest WHERE asset_type = ? AND key = ?`, assetType, key);
-    await db.runAsync(`DELETE FROM price_history WHERE asset_type = ? AND key = ?`, assetType, key);
-  });
+  await db.runAsync(`DELETE FROM transactions WHERE asset_type = ? AND key = ?`, assetType, key);
+  await db.runAsync(`DELETE FROM assets WHERE asset_type = ? AND key = ?`, assetType, key);
+  await db.runAsync(`DELETE FROM price_latest WHERE asset_type = ? AND key = ?`, assetType, key);
+  await db.runAsync(`DELETE FROM price_history WHERE asset_type = ? AND key = ?`, assetType, key);
 }
 
 // --------------------------------------------------------------------------- //
@@ -232,14 +230,14 @@ export async function insertHistoryPoints(
 ): Promise<void> {
   if (points.length === 0) return;
   const db = await getDb();
-  await db.withTransactionAsync(async () => {
-    for (const p of points) {
-      await db.runAsync(
-        `INSERT OR IGNORE INTO price_history (asset_type, key, ts, close) VALUES (?, ?, ?, ?)`,
-        assetType, key, p.ts, p.close,
-      );
-    }
-  });
+  // Sequential inserts (no explicit transaction: expo-sqlite serializes each
+  // call, and an explicit BEGIN/COMMIT can collide with the background refresh).
+  for (const p of points) {
+    await db.runAsync(
+      `INSERT OR IGNORE INTO price_history (asset_type, key, ts, close) VALUES (?, ?, ?, ?)`,
+      assetType, key, p.ts, p.close,
+    );
+  }
 }
 
 export async function getHistorySince(
