@@ -37,7 +37,7 @@ Think of these like installing any normal app. Just download and click through.
 
 ### 1. Download the code
 1. Go to this web page in your browser:
-   **https://github.com/yusufhakim/Projects/tree/claude/portfolio-tracking-app-stage1-ojg6i8**
+   **https://github.com/yusufhakim/portfolio-tracker**
 2. Click the green **“Code”** button, then click **“Download ZIP”**.
 3. Find the downloaded ZIP file (usually in your **Downloads** folder).
 4. **Right-click** it → **“Extract All…”** → **Extract**. This makes a normal folder.

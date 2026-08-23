@@ -47,8 +47,8 @@ Open **Android Studio** at least once and let it finish its first-time setup (it
 SDK). You can then close it — the build script uses that SDK directly.
 
 ### Build it
-1. Get the latest code: on your Desktop delete the old `Projects-…` folder and ZIP, then download a
-   fresh ZIP from **https://github.com/yusufhakim/Projects** (green **Code → Download ZIP**) and
+1. Get the latest code: on your Desktop delete the old `portfolio-tracker-…` folder and ZIP, then download a
+   fresh ZIP from **https://github.com/yusufhakim/portfolio-tracker** (green **Code → Download ZIP**) and
    **Extract All…** to your Desktop.
 2. Open the folder and **double-click `windows-build-apk-local.bat`**.
    (If it flashes shut, use the address-bar trick: type `cmd`, Enter, then run `windows-build-apk-local.bat`.)
@@ -102,8 +102,8 @@ error you can get when your PC's Java is newer than the build tools support.
 ## Steps
 
 ### 1. Get the latest code
-1. Delete your old Desktop `Projects-…` folder and its ZIP (to avoid confusion).
-2. Go to **https://github.com/yusufhakim/Projects** → green **“Code”** → **“Download ZIP.”**
+1. Delete your old Desktop `portfolio-tracker-…` folder and its ZIP (to avoid confusion).
+2. Go to **https://github.com/yusufhakim/portfolio-tracker** → green **“Code”** → **“Download ZIP.”**
 3. Right-click the ZIP → **“Extract All…” → Extract**, and move the folder to your Desktop.
 
 ### 2. Start the build
