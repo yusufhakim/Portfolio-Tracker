@@ -11,8 +11,9 @@ toggle across time ranges.
 ## Stages
 - **Stage 2 (current):** self-contained on-device app — local SQLite storage, prices fetched directly
   from the phone, transaction/lot tracking (buy/sell + dates), edit/delete, a Holdings/Transactions
-  toggle, and best-effort background refresh. Packaged as an installable **APK** via EAS Build. The
-  mobile app lives in `mobile/`; there is **no runtime server**.
+  toggle, and best-effort background refresh. Packaged as an installable **APK** (built locally with
+  Android Studio's toolchain, or via EAS). The mobile app lives in `mobile/`; there is
+  **no runtime server**.
 - **Stage 1 (legacy):** a client–server version (Python/FastAPI backend + Expo client). The `backend/`
   folder and `windows-start-backend.bat` / `windows-start-app.bat` / `GETTING-STARTED-WINDOWS.md` are
   kept for reference only and are **no longer used** by the Stage 2 app.
