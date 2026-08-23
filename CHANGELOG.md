@@ -2,6 +2,12 @@
 
 A running log of the Portfolio Tracker project. Newest first.
 
+## Stage 2.2 — Save/import reliability fixes
+- **Fix “Could not save” on Add Purchase and import failures:** the save no longer waits on the network
+  price refresh (it runs in the background afterward), explicit SQLite transactions were removed and a
+  `busy_timeout` added so a brief lock during the background refresh no longer fails a write, and the
+  Excel/CSV reader now uses the modern `expo-file-system` `File` API. Errors now show the real message.
+
 ## Stage 2.1 — Transaction edit/delete fix + Excel import
 - **Fix:** editing/deleting individual transactions now works. The edit screen is a normal pushed
   screen (was a modal that could fail to open) and is scrollable/keyboard-safe, and every transaction
