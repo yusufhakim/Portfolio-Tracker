@@ -39,10 +39,7 @@ export default function RootLayout() {
           />
           <Stack.Screen name="trade" options={{ title: "Trade", presentation: "modal" }} />
           <Stack.Screen name="asset/[key]" options={{ title: "Holding" }} />
-          <Stack.Screen
-            name="transaction/[id]"
-            options={{ title: "Edit Transaction", presentation: "modal" }}
-          />
+          <Stack.Screen name="transaction/[id]" options={{ title: "Edit Transaction" }} />
           <Stack.Screen name="settings" options={{ title: "Settings" }} />
         </Stack>
       </SafeAreaProvider>

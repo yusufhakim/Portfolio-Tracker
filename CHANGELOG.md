@@ -2,6 +2,16 @@
 
 A running log of the Portfolio Tracker project. Newest first.
 
+## Stage 2.1 — Transaction edit/delete fix + Excel import
+- **Fix:** editing/deleting individual transactions now works. The edit screen is a normal pushed
+  screen (was a modal that could fail to open) and is scrollable/keyboard-safe, and every transaction
+  row now has a direct **🗑 delete** button (with confirm) so deleting never depends on navigation.
+- **New — Import from Excel/CSV:** Settings → “Import from Excel / CSV” lets you bulk-add buy/sell
+  transactions from a spreadsheet with columns **Market · Symbol · Name · Action · Quantity · Price ·
+  Date** (via `expo-document-picker` + `xlsx`). Rows are validated with per-row error messages, assets
+  are created, and prices/history backfill automatically. Verified: `tsc`, `npm test`, and
+  `expo export` all pass.
+
 ## Stage 2 — Standalone on-device Android app ✅ (working APK installed)
 Turned the app into a fully self-contained Android app (no computer, no server) with proper
 transaction tracking, and got it building and running on a real phone.

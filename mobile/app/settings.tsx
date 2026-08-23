@@ -1,14 +1,15 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
-import { Pressable, StyleSheet, Switch, Text, View } from "react-native";
+import { Alert, Pressable, ScrollView, StyleSheet, Switch, Text, View } from "react-native";
 
 import { isBackgroundEnabled, setBackgroundEnabled } from "@/services/background";
-import { useManualRefresh } from "@/hooks/data";
+import { useImportTransactions, useManualRefresh } from "@/hooks/data";
 import { colors, spacing } from "@/theme";
 
 export default function SettingsScreen() {
   const qc = useQueryClient();
   const refresh = useManualRefresh();
+  const importTx = useImportTransactions();
   const [saving, setSaving] = useState(false);
 
   const bgQuery = useQuery({
@@ -24,8 +25,25 @@ export default function SettingsScreen() {
     setSaving(false);
   };
 
+  const runImport = () => {
+    importTx.mutate(undefined, {
+      onSuccess: (r) => {
+        if (r.canceled) return;
+        const parts = [`Imported ${r.inserted} transaction(s).`];
+        if (r.errors.length) {
+          parts.push("", `Skipped ${r.errors.length} row(s):`);
+          parts.push(...r.errors.slice(0, 8));
+          if (r.errors.length > 8) parts.push(`…and ${r.errors.length - 8} more.`);
+        }
+        Alert.alert("Import complete", parts.join("\n"));
+      },
+      onError: () =>
+        Alert.alert("Import failed", "Couldn't read that file. Make sure it's an .xlsx or .csv."),
+    });
+  };
+
   return (
-    <View style={styles.container}>
+    <ScrollView style={styles.screen} contentContainerStyle={styles.container}>
       <View style={styles.card}>
         <View style={styles.rowBetween}>
           <View style={{ flex: 1, marginRight: spacing.md }}>
@@ -55,17 +73,41 @@ export default function SettingsScreen() {
         </Text>
       </Pressable>
 
+      <View style={styles.card}>
+        <Text style={styles.title}>Import from Excel / CSV</Text>
+        <Text style={styles.desc}>
+          Bulk-add buy and sell transactions from a spreadsheet. Use a header row with these columns:
+        </Text>
+        <Text style={styles.code}>
+          Market · Symbol · Name · Action · Quantity · Price · Date
+        </Text>
+        <Text style={styles.desc}>
+          • Market: “US” or “India”  • Symbol: ticker (US) or AMFI scheme code (India)  • Action:
+          Buy or Sell  • Price: in the asset's own currency  • Date: dd/mm/yyyy
+        </Text>
+        <Pressable
+          style={[styles.importBtn, importTx.isPending && styles.importBtnDisabled]}
+          onPress={runImport}
+          disabled={importTx.isPending}
+        >
+          <Text style={styles.refreshText}>
+            {importTx.isPending ? "Importing…" : "Choose file & import"}
+          </Text>
+        </Pressable>
+      </View>
+
       <Text style={styles.note}>
         Prices also refresh every time you open the app and while it stays open. US stock prices only
         move during US market hours; Indian mutual fund values update once a day after the official NAV
         is published.
       </Text>
-    </View>
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.bg, padding: spacing.lg },
+  screen: { flex: 1, backgroundColor: colors.bg },
+  container: { padding: spacing.lg, paddingBottom: spacing.xl * 2 },
   card: {
     backgroundColor: colors.surface,
     borderRadius: 12,
@@ -75,12 +117,28 @@ const styles = StyleSheet.create({
   rowBetween: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
   title: { color: colors.text, fontSize: 16, fontWeight: "700" },
   desc: { color: colors.textDim, fontSize: 13, marginTop: spacing.xs, lineHeight: 18 },
+  code: {
+    color: colors.text,
+    fontSize: 13,
+    fontWeight: "700",
+    marginTop: spacing.sm,
+    marginBottom: spacing.xs,
+  },
   refreshBtn: {
     backgroundColor: colors.accent,
     borderRadius: 10,
     paddingVertical: spacing.md,
     alignItems: "center",
+    marginBottom: spacing.lg,
   },
   refreshText: { color: "#fff", fontWeight: "700", fontSize: 15 },
-  note: { color: colors.textDim, fontSize: 12, marginTop: spacing.lg, lineHeight: 18 },
+  importBtn: {
+    backgroundColor: colors.accent,
+    borderRadius: 10,
+    paddingVertical: spacing.md,
+    alignItems: "center",
+    marginTop: spacing.md,
+  },
+  importBtnDisabled: { backgroundColor: colors.surfaceAlt },
+  note: { color: colors.textDim, fontSize: 12, marginTop: spacing.xs, lineHeight: 18 },
 });

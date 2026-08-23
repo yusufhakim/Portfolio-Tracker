@@ -97,6 +97,39 @@ export async function insertTransaction(tx: TransactionInput): Promise<number> {
   return res.lastInsertRowId;
 }
 
+/** Insert many transactions + upsert their assets in a single DB transaction. */
+export async function insertTransactionsBulk(
+  txns: TransactionInput[],
+): Promise<{ inserted: number; assets: Asset[] }> {
+  if (txns.length === 0) return { inserted: 0, assets: [] };
+  const db = await getDb();
+  const created = new Date().toISOString();
+  const assetMap = new Map<string, Asset>();
+  await db.withTransactionAsync(async () => {
+    for (const tx of txns) {
+      await db.runAsync(
+        `INSERT INTO transactions (asset_type, key, name, currency, action, qty, price, trade_date, created_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        tx.asset_type, tx.key, tx.name, tx.currency, tx.action, tx.qty, tx.price, tx.trade_date, created,
+      );
+      const k = `${tx.asset_type}:${tx.key}`;
+      if (!assetMap.has(k)) {
+        assetMap.set(k, {
+          asset_type: tx.asset_type, key: tx.key, name: tx.name, currency: tx.currency,
+        });
+      }
+    }
+    for (const a of assetMap.values()) {
+      await db.runAsync(
+        `INSERT INTO assets (asset_type, key, name, currency) VALUES (?, ?, ?, ?)
+         ON CONFLICT(asset_type, key) DO UPDATE SET name = excluded.name, currency = excluded.currency`,
+        a.asset_type, a.key, a.name, a.currency,
+      );
+    }
+  });
+  return { inserted: txns.length, assets: [...assetMap.values()] };
+}
+
 export async function updateTransaction(
   id: number,
   patch: Pick<Transaction, "action" | "qty" | "price" | "trade_date">,

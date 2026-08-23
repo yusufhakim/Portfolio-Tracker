@@ -1,6 +1,16 @@
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useQuery } from "@tanstack/react-query";
-import { ActivityIndicator, Alert, Pressable, StyleSheet, Text, View } from "react-native";
+import {
+  ActivityIndicator,
+  Alert,
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
 
 import { TransactionForm } from "@/components/TransactionForm";
 import { getTransaction } from "@/db";
@@ -49,7 +59,15 @@ export default function EditTransactionScreen() {
   }
 
   return (
-    <View style={styles.container}>
+    <KeyboardAvoidingView
+      style={styles.flex}
+      behavior={Platform.OS === "ios" ? "padding" : undefined}
+    >
+      <ScrollView
+        style={styles.flex}
+        contentContainerStyle={styles.container}
+        keyboardShouldPersistTaps="handled"
+      >
       <TransactionForm
         assetLabel={`${tx.key} — ${tx.name}`}
         currency={tx.currency}
@@ -81,12 +99,14 @@ export default function EditTransactionScreen() {
       <Pressable style={styles.deleteBtn} onPress={confirmDelete}>
         <Text style={styles.deleteText}>Delete this transaction</Text>
       </Pressable>
-    </View>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.bg, padding: spacing.lg },
+  flex: { flex: 1, backgroundColor: colors.bg },
+  container: { padding: spacing.lg, paddingBottom: spacing.xl * 2 },
   center: { flex: 1, backgroundColor: colors.bg, justifyContent: "center", alignItems: "center" },
   missing: { color: colors.textDim },
   deleteBtn: { paddingVertical: spacing.lg, alignItems: "center", marginTop: spacing.md },

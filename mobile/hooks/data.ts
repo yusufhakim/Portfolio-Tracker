@@ -12,6 +12,7 @@ import {
   deleteTransaction as dbDeleteTransaction,
   getTransaction,
   insertTransaction,
+  insertTransactionsBulk,
   listTransactions,
   listTransactionsByAsset,
   updateTransaction as dbUpdateTransaction,
@@ -23,6 +24,7 @@ import type {
   TransactionInput,
 } from "@/db/types";
 import { getHistory, getPortfolio, reduceLots } from "@/services/portfolio";
+import { pickAndParseTransactions } from "@/services/importTransactions";
 import { refreshAll, refreshNewAsset } from "@/services/prices";
 import { search as providerSearch } from "@/services/providers";
 
@@ -110,6 +112,41 @@ export function useDeleteAsset() {
 }
 
 export { getTransaction };
+
+export interface ImportSummary {
+  canceled: boolean;
+  inserted: number;
+  errors: string[];
+  totalRows: number;
+}
+
+/** Pick an Excel/CSV file, import its transactions, and refresh prices. */
+export function useImportTransactions() {
+  const qc = useQueryClient();
+  return useMutation<ImportSummary>({
+    mutationFn: async () => {
+      const parsed = await pickAndParseTransactions();
+      if (parsed.canceled) {
+        return { canceled: true, inserted: 0, errors: [], totalRows: 0 };
+      }
+      let inserted = 0;
+      if (parsed.toInsert.length > 0) {
+        const res = await insertTransactionsBulk(parsed.toInsert);
+        inserted = res.inserted;
+        for (const a of res.assets) {
+          await refreshNewAsset(a); // price + history backfill (best-effort)
+        }
+      }
+      return {
+        canceled: false,
+        inserted,
+        errors: parsed.errors,
+        totalRows: parsed.totalRows,
+      };
+    },
+    onSuccess: () => invalidateAll(qc),
+  });
+}
 
 /** Trigger a full network refresh then refresh the queries. */
 export function useManualRefresh() {

@@ -2,6 +2,7 @@ import { Link, useRouter } from "expo-router";
 import { useState } from "react";
 import {
   ActivityIndicator,
+  Alert,
   FlatList,
   Pressable,
   RefreshControl,
@@ -19,11 +20,13 @@ import { TransactionRow } from "@/components/TransactionRow";
 import type { Holding, RangeKey, Transaction } from "@/db/types";
 import {
   useAutoRefresh,
+  useDeleteTransaction,
   useHistory,
   useManualRefresh,
   usePortfolio,
   useTransactions,
 } from "@/hooks/data";
+import { confirmDeleteTransaction } from "@/components/confirmDeleteTransaction";
 import {
   colors,
   formatCurrency,
@@ -46,6 +49,7 @@ export default function PortfolioScreen() {
   const historyQuery = useHistory(range);
   const txQuery = useTransactions();
   const refresh = useManualRefresh();
+  const deleteTx = useDeleteTransaction();
 
   const p = portfolioQuery.data;
 
@@ -142,6 +146,7 @@ export default function PortfolioScreen() {
             onPress={(t) =>
               router.push({ pathname: "/transaction/[id]", params: { id: String(t.id) } })
             }
+            onDelete={(t) => confirmDeleteTransaction(t, () => deleteTx.mutate(t.id))}
           />
         )
       }

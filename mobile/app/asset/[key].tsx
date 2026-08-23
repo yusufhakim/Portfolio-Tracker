@@ -11,8 +11,9 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { TransactionRow } from "@/components/TransactionRow";
+import { confirmDeleteTransaction } from "@/components/confirmDeleteTransaction";
 import type { AssetType, Holding } from "@/db/types";
-import { useAssetDetail, useDeleteAsset, usePortfolio } from "@/hooks/data";
+import { useAssetDetail, useDeleteAsset, useDeleteTransaction, usePortfolio } from "@/hooks/data";
 import {
   colors,
   formatCurrency,
@@ -38,6 +39,7 @@ export default function AssetDetailScreen() {
 
   const detail = useAssetDetail(assetType, key);
   const portfolio = usePortfolio();
+  const deleteTx = useDeleteTransaction();
   const deleteAsset = useDeleteAsset();
 
   const holding: Holding | undefined = portfolio.data?.holdings.find(
@@ -142,6 +144,7 @@ export default function AssetDetailScreen() {
           onPress={(t) =>
             router.push({ pathname: "/transaction/[id]", params: { id: String(t.id) } })
           }
+          onDelete={(t) => confirmDeleteTransaction(t, () => deleteTx.mutate(t.id))}
         />
       )}
       ListFooterComponent={
