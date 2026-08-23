@@ -6,8 +6,34 @@ your phone and updates prices by itself.
 
 You only do this **once** (and again later if you want to update the app).
 
-There are two ways to build. **If you have Android Studio installed, use Option B — it's the most
-reliable.** If not, Option A builds in Expo's free cloud.
+---
+
+## Prerequisites — setting up a fresh/wiped computer
+
+You need exactly **two** programs. **You do NOT need Python** — that was only for the old Stage 1
+server, which this standalone app doesn't use. Don't reinstall it.
+
+### 1. Node.js (LTS)
+1. Go to **https://nodejs.org/** and click the **“LTS”** download (the stable one — avoid “Current”).
+2. Run the installer → **Next → Next → Install** (accept defaults). Done.
+
+### 2. Android Studio
+1. Go to **https://developer.android.com/studio** → **Download Android Studio** → run the installer with
+   default options.
+2. **Open Android Studio once** and let the first-run **Setup Wizard** complete — choose **Standard**
+   and let it download the **Android SDK**. Leave it until it says finished, then you can close it.
+
+### A note on Java (important — this bit us before)
+Modern Android Studio ships **Java 25**, which is **too new** for the Android build tools (they need
+**Java 17**). We handle this below by having Android Studio **download a Java 17** just for building — so
+**don't install a separate Java** yourself. If you already have some Java on your PC, that's fine; we
+won't rely on it.
+
+---
+
+## Two ways to build
+**Use Option B (build on your computer with Android Studio) — it's the most reliable.** Option A (Expo's
+cloud) is a fallback.
 
 ---
 
