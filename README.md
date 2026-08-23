@@ -26,8 +26,12 @@ toggle across time ranges.
   gain/loss (each in its native currency); the **portfolio total and top graph are in USD**.
 - **Transactions view** — a toggle beside Holdings lists every buy/sell newest→oldest
   (ticker · action · price · qty · date).
-- **Buy more / sell / edit / delete** — add lots, sell holdings, edit any transaction, delete a single
-  transaction or an entire holding.
+- **Buy more / sell / edit / delete** — add lots, sell holdings, tap a transaction to edit it, or tap
+  the **🗑** on any transaction row to delete a single transaction (delete an entire holding from its
+  detail screen).
+- **Import from Excel / CSV** — Settings → “Import from Excel / CSV” bulk-adds buy/sell transactions
+  from a spreadsheet with columns **Market · Symbol · Name · Action · Quantity · Price · Date** (rows
+  are validated with per-row errors; imported assets get prices + history automatically).
 - **On-device updates** — prices refresh on open, while open, and (optionally) in the background;
   US via Finnhub, Indian NAVs via mfapi.in, USD/INR via open.er-api.com. All stored in on-device SQLite.
 - **Performance graph** pinned at the top with **1D / 1W / 1M / 3M / 1Y / ALL** range toggles.
@@ -40,7 +44,8 @@ mobile/  (Expo / React Native + TypeScript) — fully self-contained
   components/     PortfolioChart (react-native-svg), HoldingRow, TransactionRow, DateField, TransactionForm, ...
   db/             expo-sqlite storage: transactions, assets, price_latest, price_history, fx_rates, settings
   services/       providers (finnhub, indiaMf, fx), prices (refresh), portfolio (holdings/history math),
-                  lots (pure math, unit-tested), background (expo-background-task)
+                  lots (pure math, unit-tested), background (expo-background-task),
+                  importTransactions (Excel/CSV via expo-document-picker + xlsx)
   hooks/          React Query hooks over SQLite + refresh triggers
 ```
 
