@@ -11,6 +11,7 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { Icon } from "@/components/Icon";
 import { IndexCard } from "@/components/IndexCard";
 import { Logo } from "@/components/Logo";
 import { PortfolioRow } from "@/components/PortfolioRow";
@@ -47,7 +48,7 @@ export default function DashboardScreen() {
         </View>
         <Link href="/settings" asChild>
           <Pressable hitSlop={10}>
-            <Text style={styles.gear}>⚙︎</Text>
+            <Icon name="controls" size={24} color={colors.textDim} />
           </Pressable>
         </Link>
       </View>
@@ -136,7 +137,6 @@ const makeStyles = (colors: Palette) => StyleSheet.create({
   },
   brand: { flexDirection: "row", alignItems: "center", gap: 8, flex: 1, marginRight: spacing.md },
   appName: { color: colors.text, fontSize: 22, fontWeight: "800", flexShrink: 1 },
-  gear: { color: colors.textDim, fontSize: 22 },
   indexBlock: { minHeight: 60, marginTop: spacing.md },
   indexRow: {
     flexDirection: "row",
