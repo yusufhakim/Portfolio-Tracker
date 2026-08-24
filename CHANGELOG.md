@@ -2,6 +2,26 @@
 
 A running log of the Portfolio Tracker project. Newest first.
 
+## Stage 3.2 — Live prices, chart axes, sorting, app lock, per-portfolio currency
+- **30-second price refresh** (kept the existing Finnhub method): US quotes now refresh every 30s while
+  the app is open (FX on a slower 10-min cadence to stay well under the free endpoint's limits) instead
+  of every 15 min.
+- **Chart axes** — the portfolio chart now has a **dynamic y-axis** (value ticks in the portfolio's
+  currency that rescale as the value changes) and a **dynamic x-axis** (time labels that follow the
+  selected 1D…ALL range) with light gridlines.
+- **Sort holdings** — a **Sort** button next to “+ Add” (Holdings tab only) sorts by **ticker symbol,
+  company name, portfolio value, daily % change, or current price**, each toggllable
+  ascending/descending (A–Z / Z–A). The Transactions tab keeps its newest-first order.
+- **App lock** — on open, the app requires your **phone's biometrics or screen PIN/pattern/password**
+  (`expo-local-authentication`). If the phone has no lock set, or the check errors, it fails open so you
+  can't be locked out of your own data.
+- **Per-portfolio display currency** — in a portfolio's **Edit** screen, choose **Default / INR (₹) /
+  USD ($) / AED (D)**. The portfolio's value, daily change and chart are shown converted into that
+  currency using the latest live FX rate (USD↔INR↔AED) at full precision. (xe.com has no free public
+  API, so an equivalent free spot-rate source is used.)
+- Verified: `tsc` clean, `npm test`, and `expo export` all pass. Adds the `expo-local-authentication`
+  dependency (rebuild the APK to pick it up).
+
 ## Stage 3.1 — Dashboard bug fixes + theme + polish
 **Fixes**
 - **Fix “Could not save … NativeDatabase.prepareAsync … NullPointerException” when adding a holding

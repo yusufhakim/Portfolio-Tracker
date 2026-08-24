@@ -12,13 +12,19 @@ export interface Portfolio {
   name: string;
   created_at: string;
   sort_order: number;
+  /** Display currency override: "USD" | "INR" | "AED", or null = Default (USD). */
+  currency: string | null;
 }
 
-/** A portfolio plus its computed USD value and daily change. */
+/** A portfolio plus its computed value (in its display currency) and daily change. */
 export interface PortfolioWithValue extends Portfolio {
   value_usd: number;
   day_change_usd: number;
   day_change_pct: number | null;
+  /** Resolved display currency ("USD" | "INR" | "AED"). */
+  display_currency: string;
+  /** value_usd converted into display_currency. */
+  value_display: number;
 }
 
 /** A single buy/sell transaction — the source of truth for holdings. */
@@ -90,6 +96,13 @@ export interface PortfolioTotals {
   total_gain_pct: number;
   day_change_usd: number;
   holdings: Holding[];
+  /** Resolved display currency ("USD" | "INR" | "AED"). */
+  display_currency: string;
+  /** Multiply a USD amount by this to get the display currency (USD → 1). */
+  fx_factor: number;
+  total_value_display: number;
+  total_gain_display: number;
+  day_change_display: number;
 }
 
 export interface PortfolioHistoryPoint {

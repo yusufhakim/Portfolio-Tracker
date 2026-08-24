@@ -28,6 +28,12 @@
       "expo-sqlite",
       "expo-background-task",
       [
+        "expo-local-authentication",
+        {
+          "faceIDPermission": "Allow Portfolio Tracker to unlock the app with Face ID."
+        }
+      ],
+      [
         "expo-splash-screen",
         {
           "image": "./assets/splash-icon.png",

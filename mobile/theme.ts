@@ -79,22 +79,33 @@ export const spacing = {
   xl: 24,
 };
 
+/** Display symbols exactly as specified: USD "$", INR "₹", AED "D". */
+export const CURRENCY_SYMBOL: Record<string, string> = { USD: "$", INR: "₹", AED: "D" };
+
+export function currencySymbol(ccy: string): string {
+  return CURRENCY_SYMBOL[ccy?.toUpperCase()] ?? "$";
+}
+
 export function formatCurrency(value: number | null | undefined, ccy: string): string {
   if (value === null || value === undefined) return "—";
-  const symbol = ccy === "INR" ? "₹" : "$";
-  return `${symbol}${value.toLocaleString(undefined, {
+  return `${currencySymbol(ccy)}${value.toLocaleString(undefined, {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   })}`;
 }
 
-/** USD value with no decimal places, e.g. "$117,049". */
-export function formatUsd0(value: number | null | undefined): string {
+/** Money with no decimal places in the given currency, e.g. "$117,049" / "₹9,732,050". */
+export function formatMoney0(value: number | null | undefined, ccy = "USD"): string {
   if (value === null || value === undefined || !Number.isFinite(value)) return "—";
-  return `$${Math.round(value).toLocaleString(undefined, {
+  return `${currencySymbol(ccy)}${Math.round(value).toLocaleString(undefined, {
     minimumFractionDigits: 0,
     maximumFractionDigits: 0,
   })}`;
+}
+
+/** USD value with no decimal places, e.g. "$117,049". */
+export function formatUsd0(value: number | null | undefined): string {
+  return formatMoney0(value, "USD");
 }
 
 export function formatPct(value: number | null | undefined): string {

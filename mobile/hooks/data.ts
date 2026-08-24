@@ -21,6 +21,7 @@ import {
   listTransactions,
   listTransactionsByAsset,
   renamePortfolio as dbRenamePortfolio,
+  setPortfolioCurrency as dbSetPortfolioCurrency,
   updateTransaction as dbUpdateTransaction,
 } from "@/db";
 import type {
@@ -36,11 +37,15 @@ import {
   reduceLots,
 } from "@/services/portfolio";
 import { pickAndParseTransactions } from "@/services/importTransactions";
-import { refreshAll, refreshNewAsset } from "@/services/prices";
+import { refreshAll, refreshFx, refreshQuotes } from "@/services/prices";
+import { refreshNewAsset } from "@/services/prices";
 import { search as providerSearch } from "@/services/providers";
 import { getIndices, type Market as IndexMarket } from "@/services/providers/indices";
 
-const FOREGROUND_REFRESH_MS = 15 * 60 * 1000; // 15 min while app is open
+// US quotes refresh every 30s while the app is open (Finnhub free tier, real-time-ish).
+const QUOTE_REFRESH_MS = 30 * 1000;
+// FX changes slowly — refresh it far less often to stay well under the free endpoint's limits.
+const FX_REFRESH_MS = 10 * 60 * 1000;
 
 function invalidateAll(qc: ReturnType<typeof useQueryClient>) {
   qc.invalidateQueries({ queryKey: ["portfolio"] });
@@ -88,6 +93,20 @@ export function useDeletePortfolio() {
   return useMutation({
     mutationFn: (id: number) => dbDeletePortfolio(id),
     onSuccess: () => invalidateAll(qc),
+  });
+}
+
+export function useSetPortfolioCurrency() {
+  const qc = useQueryClient();
+  return useMutation({
+    // currency: "USD" | "INR" | "AED", or null for Default.
+    mutationFn: (args: { id: number; currency: string | null }) =>
+      dbSetPortfolioCurrency(args.id, args.currency),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["portfolios"] });
+      qc.invalidateQueries({ queryKey: ["portfolio"] });
+      qc.invalidateQueries({ queryKey: ["portfolio-meta"] });
+    },
   });
 }
 
@@ -269,24 +288,38 @@ export function useManualRefresh() {
   });
 }
 
-/** Refresh prices on mount, when app returns to foreground, and every 15 min. */
+/**
+ * Keep prices live while the app is open: a full refresh on mount and whenever
+ * the app returns to the foreground, then US quotes every 30s and FX every 10 min.
+ */
 export function useAutoRefresh() {
   const qc = useQueryClient();
   useEffect(() => {
     let mounted = true;
-    const run = () => {
+    const runQuotes = () => {
+      refreshQuotes().then(() => {
+        if (mounted) invalidateAll(qc);
+      }).catch(() => {});
+    };
+    const runFull = () => {
       refreshAll().then(() => {
         if (mounted) invalidateAll(qc);
-      });
+      }).catch(() => {});
     };
-    run();
-    const interval = setInterval(run, FOREGROUND_REFRESH_MS);
+    runFull(); // mount: FX + quotes
+    const quoteTimer = setInterval(runQuotes, QUOTE_REFRESH_MS);
+    const fxTimer = setInterval(() => {
+      refreshFx().then(() => {
+        if (mounted) invalidateAll(qc);
+      }).catch(() => {});
+    }, FX_REFRESH_MS);
     const sub = AppState.addEventListener("change", (state) => {
-      if (state === "active") run();
+      if (state === "active") runFull();
     });
     return () => {
       mounted = false;
-      clearInterval(interval);
+      clearInterval(quoteTimer);
+      clearInterval(fxTimer);
       sub.remove();
     };
   }, [qc]);

@@ -3,6 +3,7 @@ import {
   fxRateAt,
   getAllPriceLatest,
   getHistorySince,
+  getPortfolioById,
   latestFxRate,
   listPortfolios,
   listTransactions,
@@ -34,6 +35,29 @@ function round2(n: number): number {
 }
 
 export { reduceLots };
+
+/** Normalize a portfolio's currency override to a supported display currency. */
+export function resolveCurrency(currency: string | null | undefined): string {
+  const c = (currency ?? "").toUpperCase();
+  return c === "INR" || c === "AED" ? c : "USD";
+}
+
+/**
+ * Factor to convert a USD amount into `currency`, using the latest stored FX
+ * rate. USD → 1. If the rate is missing we fall back to USD (factor 1) so a
+ * display never breaks; the effective currency is returned alongside.
+ */
+async function displayFactor(
+  currency: string | null | undefined,
+): Promise<{ currency: string; factor: number }> {
+  const target = resolveCurrency(currency);
+  if (target === "USD") return { currency: "USD", factor: 1 };
+  const rate = await latestFxRate(`USD${target}`);
+  if (rate === null || !Number.isFinite(rate) || rate <= 0) {
+    return { currency: "USD", factor: 1 }; // no rate yet — show USD rather than break
+  }
+  return { currency: target, factor: rate };
+}
 
 /** Distinct assets referenced by a set of transactions. */
 function assetsFromTxns(txns: Transaction[]): Asset[] {
@@ -129,6 +153,9 @@ export async function getPortfolio(portfolioId: number): Promise<PortfolioTotals
   const { holdings, totalValue, totalCost, totalDay } = buildHoldings(txns, priceMap, usdInr);
   const totalGain = totalValue - totalCost;
 
+  const pf = await getPortfolioById(portfolioId);
+  const { currency: displayCurrency, factor } = await displayFactor(pf?.currency ?? null);
+
   return {
     total_value_usd: round2(totalValue),
     total_cost_usd: round2(totalCost),
@@ -136,16 +163,23 @@ export async function getPortfolio(portfolioId: number): Promise<PortfolioTotals
     total_gain_pct: totalCost > 0 ? round2((totalGain / totalCost) * 100) : 0,
     day_change_usd: round2(totalDay),
     holdings,
+    display_currency: displayCurrency,
+    fx_factor: factor,
+    total_value_display: round2(totalValue * factor),
+    total_gain_display: round2(totalGain * factor),
+    day_change_display: round2(totalDay * factor),
   };
 }
 
 /** Every portfolio with its current USD value and daily change (for the dashboard). */
 export async function listPortfoliosWithValue(): Promise<PortfolioWithValue[]> {
-  const [portfolios, txns, latest, usdInr] = await Promise.all([
+  const [portfolios, txns, latest, usdInr, usdInrRate, usdAedRate] = await Promise.all([
     listPortfolios(),
     listTransactions(),
     getAllPriceLatest(),
     latestFxRate(FX_PAIR),
+    latestFxRate("USDINR"),
+    latestFxRate("USDAED"),
   ]);
   const priceMap = new Map(latest.map((p) => [`${p.asset_type}:${p.key}`, p]));
   const byPf = new Map<number, Transaction[]>();
@@ -155,15 +189,26 @@ export async function listPortfoliosWithValue(): Promise<PortfolioWithValue[]> {
     byPf.set(t.portfolio_id, arr);
   }
 
+  const factorFor = (currency: string | null): { currency: string; factor: number } => {
+    const target = resolveCurrency(currency);
+    if (target === "USD") return { currency: "USD", factor: 1 };
+    const rate = target === "INR" ? usdInrRate : usdAedRate;
+    if (rate === null || !Number.isFinite(rate) || rate <= 0) return { currency: "USD", factor: 1 };
+    return { currency: target, factor: rate };
+  };
+
   return portfolios.map((p) => {
     const { totalValue, totalDay } = buildHoldings(byPf.get(p.id) ?? [], priceMap, usdInr);
     const prior = totalValue - totalDay;
     const pct = prior > EPS ? (totalDay / prior) * 100 : null;
+    const { currency: displayCurrency, factor } = factorFor(p.currency);
     return {
       ...p,
       value_usd: round2(totalValue),
       day_change_usd: round2(totalDay),
       day_change_pct: pct === null ? null : round2(pct),
+      display_currency: displayCurrency,
+      value_display: round2(totalValue * factor),
     };
   });
 }

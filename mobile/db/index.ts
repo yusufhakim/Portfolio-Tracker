@@ -120,6 +120,12 @@ async function migrate(db: SQLite.SQLiteDatabase): Promise<void> {
   // Move any pre-Stage-3 (unassigned) transactions into the default portfolio.
   await db.runAsync(`UPDATE transactions SET portfolio_id = ? WHERE portfolio_id IS NULL`, def.id);
   await db.execAsync(`CREATE INDEX IF NOT EXISTS ix_tx_portfolio ON transactions(portfolio_id);`);
+
+  // --- Per-portfolio display currency (null = Default = USD) ---
+  const pcols = await db.getAllAsync<{ name: string }>(`PRAGMA table_info(portfolios)`);
+  if (!pcols.some((c) => c.name === "currency")) {
+    await db.execAsync(`ALTER TABLE portfolios ADD COLUMN currency TEXT`);
+  }
 }
 
 // --------------------------------------------------------------------------- //
@@ -152,6 +158,12 @@ export async function createPortfolio(name: string): Promise<number> {
 export async function renamePortfolio(id: number, name: string): Promise<void> {
   const db = await getDb();
   await db.runAsync(`UPDATE portfolios SET name = ? WHERE id = ?`, name.trim(), id);
+}
+
+/** Set a portfolio's display currency. Pass null for "Default" (USD). */
+export async function setPortfolioCurrency(id: number, currency: string | null): Promise<void> {
+  const db = await getDb();
+  await db.runAsync(`UPDATE portfolios SET currency = ? WHERE id = ?`, currency, id);
 }
 
 /** Delete a portfolio and all its transactions. */

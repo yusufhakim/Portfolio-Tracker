@@ -4,6 +4,7 @@ import { StatusBar } from "expo-status-bar";
 import { useEffect } from "react";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 
+import { AppLockGate } from "@/components/AppLockGate";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { getDb } from "@/db";
 // Importing the background module registers the background task at load time.
@@ -57,7 +58,9 @@ export default function RootLayout() {
     <QueryClientProvider client={queryClient}>
       <SafeAreaProvider>
         <ThemeProvider>
-          <ThemedNavigator />
+          <AppLockGate>
+            <ThemedNavigator />
+          </AppLockGate>
         </ThemeProvider>
       </SafeAreaProvider>
     </QueryClientProvider>

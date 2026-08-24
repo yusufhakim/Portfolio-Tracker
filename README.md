@@ -31,8 +31,19 @@ graph you can toggle across time ranges.
   swapping live **index cards** (level · colored daily change · sparkline); a **Portfolios** list with a
   **+** to create a new one.
 - **Multiple portfolios (buckets)** — every transaction belongs to exactly one portfolio. Create, rename,
-  or delete portfolios; each row shows **USD value (0 dp)** and **daily change %** with a green/red arrow.
+  or delete portfolios; each row shows its value (0 dp) and **daily change %** with a green/red arrow.
   Existing data is migrated into a default **“My Portfolio”** on first launch.
+- **Per-portfolio display currency** — a portfolio's **Edit** screen offers **Default / INR (₹) / USD ($)
+  / AED (D)**; its value, daily change and chart are converted into that currency using the latest live
+  FX rate (USD↔INR↔AED, full precision).
+- **Sort holdings** — a **Sort** control (Holdings tab only) orders by ticker, company name, value,
+  daily % change, or current price, ascending or descending.
+- **App lock** — on open, the app asks for your **phone's biometrics or screen PIN** before showing your
+  data (fails open if the phone has no lock set).
+- **Live-ish prices** — US quotes refresh **every 30 seconds** while the app is open (Finnhub), Indian
+  NAVs once a day, FX every ~10 minutes.
+- **Dynamic chart axes** — the performance chart labels a **value (y) axis** in the portfolio's currency
+  and a **time (x) axis** that follows the selected 1D…ALL range.
 - **Record transactions** — inside a portfolio, search a US stock by **name or ticker** ("apple" or
   "AAPL") or an Indian fund by name; enter **fractional quantity**, **price in the asset's own
   currency**, and a **date** (calendar picker or typed dd/mm/yyyy).
@@ -61,8 +72,9 @@ graph you can toggle across time ranges.
 mobile/  (Expo / React Native + TypeScript) — fully self-contained
   app/            expo-router screens: index (dashboard), portfolio/[id], portfolio-edit,
                   add-asset, trade, asset/[key], transaction/[id], settings
-  components/     PortfolioChart (react-native-svg), IndexCard, PortfolioRow, ChangeText (▲/▼),
-                  HoldingRow, TransactionRow, SegmentedToggle, DateField, TransactionForm, ...
+  components/     PortfolioChart (svg, dynamic axes), IndexCard, PortfolioRow, ChangeText (▲/▼),
+                  HoldingRow, HoldingsSort, TransactionRow, SegmentedToggle, DateField,
+                  TransactionForm, ThemeProvider, AppLockGate, ...
   db/             expo-sqlite storage: portfolios, transactions (portfolio_id), assets,
                   price_latest, price_history, fx_rates, settings
   services/       providers (finnhub, indiaMf, fx, indices=Yahoo), prices (refresh),
@@ -83,7 +95,7 @@ with Android Studio's toolchain (recommended, `windows-build-apk-local.bat`) or 
 |---|---|---|
 | US equities / ETFs | [Finnhub](https://finnhub.io) | Free tier; searches by symbol **and** name. Key embedded in `app.json` `extra.finnhubApiKey` (personal free key; rotate at finnhub.io). |
 | Indian mutual fund NAVs | [mfapi.in](https://www.mfapi.in) | Keyless; search by name, latest + full historical NAV. |
-| USD/INR FX | [open.er-api.com](https://open.er-api.com) | Keyless daily rates. |
+| FX (USD↔INR↔AED) | [open.er-api.com](https://open.er-api.com) | Keyless, USD-based rates at full precision; drives the per-portfolio display currency. (xe.com has no free public API.) |
 | Market indices (S&P 500, Nasdaq, Dow / Sensex, Nifty 50, Nifty Next 50) | Yahoo Finance chart API | Keyless, unofficial; dashboard cards only, not stored. A card shows “Unavailable” if Yahoo hiccups. |
 
 ## Develop / verify the mobile app

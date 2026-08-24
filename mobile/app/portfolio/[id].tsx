@@ -12,6 +12,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { HoldingRow } from "@/components/HoldingRow";
+import { HoldingsSort, defaultSort, type SortState } from "@/components/HoldingsSort";
 import { PortfolioChart } from "@/components/PortfolioChart";
 import { RangeToggle } from "@/components/RangeToggle";
 import { SegmentedToggle } from "@/components/SegmentedToggle";
@@ -27,10 +28,9 @@ import {
   useTransactions,
 } from "@/hooks/data";
 import {
-  formatCurrency,
+  formatMoney0,
   formatPct,
   formatSignedCurrency,
-  formatUsd0,
   gainColor,
   spacing,
   useColors,
@@ -49,6 +49,7 @@ export default function PortfolioDetailScreen() {
 
   const [range, setRange] = useState<RangeKey>("1M");
   const [tab, setTab] = useState<Tab>("holdings");
+  const [sort, setSort] = useState<SortState>(defaultSort());
 
   const meta = usePortfolioMeta(portfolioId);
   const portfolioQuery = usePortfolio(portfolioId);
@@ -59,23 +60,43 @@ export default function PortfolioDetailScreen() {
 
   const p = portfolioQuery.data;
   const name = meta.data?.name ?? "Portfolio";
+  const ccy = p?.display_currency ?? "USD";
+
+  const sortedHoldings = useMemo(() => {
+    const arr = [...(p?.holdings ?? [])];
+    const sign = sort.dir === "asc" ? 1 : -1;
+    arr.sort((a, b) => {
+      let r = 0;
+      switch (sort.field) {
+        case "ticker": r = a.key.localeCompare(b.key); break;
+        case "name": r = (a.name ?? "").localeCompare(b.name ?? ""); break;
+        case "value": r = (a.market_value_usd ?? 0) - (b.market_value_usd ?? 0); break;
+        case "day_pct": r = (a.day_change_pct ?? 0) - (b.day_change_pct ?? 0); break;
+        case "price": r = (a.price ?? 0) - (b.price ?? 0); break;
+      }
+      return r * sign;
+    });
+    return arr;
+  }, [p?.holdings, sort]);
 
   const header = (
     <View>
       <View style={styles.summary}>
-        <Text style={styles.summaryLabel}>Total Value (USD)</Text>
-        <Text style={styles.summaryValue}>{formatUsd0(p?.total_value_usd)}</Text>
+        <Text style={styles.summaryLabel}>Total Value ({ccy})</Text>
+        <Text style={styles.summaryValue}>{formatMoney0(p?.total_value_display, ccy)}</Text>
         <Text style={[styles.summaryGain, { color: gainColor(p?.total_gain_usd) }]}>
-          {formatSignedCurrency(p?.total_gain_usd, "USD")} ({formatPct(p?.total_gain_pct)}) all-time
+          {formatSignedCurrency(p?.total_gain_display, ccy)} ({formatPct(p?.total_gain_pct)}) all-time
         </Text>
         <Text style={[styles.summaryDay, { color: gainColor(p?.day_change_usd) }]}>
-          {formatSignedCurrency(p?.day_change_usd, "USD")} today
+          {formatSignedCurrency(p?.day_change_display, ccy)} today
         </Text>
       </View>
 
       <PortfolioChart
         points={historyQuery.data ?? []}
-        baseCurrency="USD"
+        currency={ccy}
+        fxFactor={p?.fx_factor ?? 1}
+        range={range}
         loading={historyQuery.isLoading}
       />
       <RangeToggle value={range} onChange={setRange} />
@@ -91,6 +112,7 @@ export default function PortfolioDetailScreen() {
             onChange={setTab}
           />
         </View>
+        {tab === "holdings" && <HoldingsSort value={sort} onChange={setSort} />}
         <Link
           href={{ pathname: "/add-asset", params: { portfolioId: String(portfolioId) } }}
           asChild
@@ -111,7 +133,6 @@ export default function PortfolioDetailScreen() {
     );
   }
 
-  const holdings = p?.holdings ?? [];
   const txns = txQuery.data ?? [];
   const showingHoldings = tab === "holdings";
 
@@ -124,7 +145,7 @@ export default function PortfolioDetailScreen() {
             <Link
               href={{
                 pathname: "/portfolio-edit",
-                params: { id: String(portfolioId), name },
+                params: { id: String(portfolioId), name, currency: meta.data?.currency ?? "" },
               }}
               asChild
             >
@@ -142,7 +163,7 @@ export default function PortfolioDetailScreen() {
           paddingTop: insets.top + spacing.sm,
           paddingBottom: insets.bottom + spacing.xl,
         }}
-        data={showingHoldings ? holdings : txns}
+        data={showingHoldings ? sortedHoldings : txns}
         keyExtractor={(item: Holding | Transaction) =>
           showingHoldings
             ? `${(item as Holding).asset_type}:${(item as Holding).key}`

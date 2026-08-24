@@ -10,14 +10,16 @@ import {
 import type { Asset, AssetType, RangeKey } from "@/db/types";
 import { US_ASSET_TYPES } from "@/db/types";
 
-import { getUsdInr, FX_PAIR } from "./providers/fx";
+import { getUsdRates } from "./providers/fx";
 import * as providers from "./providers";
 
-/** Refresh the USD/INR rate. Silent on failure (keeps last known). */
+/** Refresh USD→INR and USD→AED rates. Silent on failure (keeps last known). */
 export async function refreshFx(): Promise<void> {
   try {
-    const { rate, asOf } = await getUsdInr();
-    await insertFxRate(FX_PAIR, rate, asOf);
+    const { rates, asOf } = await getUsdRates();
+    for (const [ccy, rate] of Object.entries(rates)) {
+      await insertFxRate(`USD${ccy}`, rate, asOf);
+    }
   } catch {
     // keep prior rate
   }

@@ -3,7 +3,7 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 
 import { ChangeText } from "@/components/ChangeText";
 import type { PortfolioWithValue } from "@/db/types";
-import { formatUsd0, spacing, useColors, type Palette } from "@/theme";
+import { formatMoney0, spacing, useColors, type Palette } from "@/theme";
 
 interface Props {
   portfolio: PortfolioWithValue;
@@ -19,10 +19,10 @@ export function PortfolioRow({ portfolio: p, onPress }: Props) {
         <Text style={styles.name} numberOfLines={1}>
           {p.name}
         </Text>
-        <Text style={styles.sub}>Total value (USD)</Text>
+        <Text style={styles.sub}>Total value ({p.display_currency})</Text>
       </View>
       <View style={styles.right}>
-        <Text style={styles.value}>{formatUsd0(p.value_usd)}</Text>
+        <Text style={styles.value}>{formatMoney0(p.value_display, p.display_currency)}</Text>
         <ChangeText pct={p.day_change_pct} size={13} />
       </View>
     </Pressable>
