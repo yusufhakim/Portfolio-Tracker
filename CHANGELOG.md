@@ -2,6 +2,15 @@
 
 A running log of the Portfolio Tracker project. Newest first.
 
+## Stage 3.3 — Index card restyle + sparkline colour fix
+- **Fix:** the index-card sparkline could show **green while the day's change was negative** — it was
+  coloured by comparing the first and last intraday points instead of the actual % change. The
+  sparkline, the number, and the new arrow badge are now all coloured by the same daily **% change**, so
+  they always agree (red when down, green when up).
+- **Restyle** the index cards to match the inspiration: bold name, grey level, coloured % with a filled
+  **circular arrow badge**, a **dotted separator**, and a **filled area sparkline with an end dot** —
+  all fully theme-aware (light / dark / system).
+
 ## Stage 3.2 — Live prices, chart axes, sorting, app lock, per-portfolio currency
 - **30-second price refresh** (kept the existing Finnhub method): US quotes now refresh every 30s while
   the app is open (FX on a slower 10-min cadence to stay well under the free endpoint's limits) instead
