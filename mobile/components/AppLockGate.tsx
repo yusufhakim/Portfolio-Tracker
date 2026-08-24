@@ -2,6 +2,7 @@ import * as LocalAuthentication from "expo-local-authentication";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ActivityIndicator, AppState, Pressable, StyleSheet, Text, View } from "react-native";
 
+import { Icon } from "@/components/Icon";
 import { beginTrusted, endTrusted, isTrusted } from "@/services/lockControl";
 import { spacing, useColors, type Palette } from "@/theme";
 
@@ -65,6 +66,7 @@ export function AppLockGate({ children }: { children: React.ReactNode }) {
 
   return (
     <View style={styles.screen}>
+      <Icon name={state === "checking" ? "app.lock" : "secure"} size={28} color={colors.accent} />
       <Text style={styles.title}>Portfolio Tracker</Text>
       {state === "checking" ? (
         <ActivityIndicator color={colors.accent} style={{ marginTop: spacing.xl }} />
@@ -88,7 +90,7 @@ const makeStyles = (colors: Palette) => StyleSheet.create({
     alignItems: "center",
     padding: spacing.xl,
   },
-  title: { color: colors.text, fontSize: 24, fontWeight: "800" },
+  title: { color: colors.text, fontSize: 24, fontWeight: "800", marginTop: spacing.md },
   sub: { color: colors.textDim, fontSize: 14, marginTop: spacing.md, textAlign: "center" },
   btn: {
     backgroundColor: colors.accent,

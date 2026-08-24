@@ -12,6 +12,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { IndexCard } from "@/components/IndexCard";
+import { Logo } from "@/components/Logo";
 import { PortfolioRow } from "@/components/PortfolioRow";
 import { SegmentedToggle } from "@/components/SegmentedToggle";
 import type { PortfolioWithValue } from "@/db/types";
@@ -40,7 +41,10 @@ export default function DashboardScreen() {
   const header = (
     <View>
       <View style={styles.topBar}>
-        <Text style={styles.appName}>Yusuf's Portfolio Tracker</Text>
+        <View style={styles.brand}>
+          <Logo variant="mark" size={22} />
+          <Text style={styles.appName}>Yusuf's Portfolio Tracker</Text>
+        </View>
         <Link href="/settings" asChild>
           <Pressable hitSlop={10}>
             <Text style={styles.gear}>⚙︎</Text>
@@ -130,7 +134,8 @@ const makeStyles = (colors: Palette) => StyleSheet.create({
     alignItems: "center",
     marginBottom: spacing.lg,
   },
-  appName: { color: colors.text, fontSize: 22, fontWeight: "800", flex: 1, marginRight: spacing.md },
+  brand: { flexDirection: "row", alignItems: "center", gap: 8, flex: 1, marginRight: spacing.md },
+  appName: { color: colors.text, fontSize: 22, fontWeight: "800", flexShrink: 1 },
   gear: { color: colors.textDim, fontSize: 22 },
   indexBlock: { minHeight: 60, marginTop: spacing.md },
   indexRow: {

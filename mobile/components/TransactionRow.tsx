@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
+import { Icon } from "@/components/Icon";
 import type { Transaction } from "@/db/types";
 import { formatCurrency, formatQty, isoToDisplay, spacing, useColors, type Palette } from "@/theme";
 
@@ -41,7 +42,7 @@ export function TransactionRow({ tx, onPress, onDelete }: Props) {
           hitSlop={8}
           onPress={() => onDelete(tx)}
         >
-          <Text style={styles.deleteIcon}>🗑</Text>
+          <Icon name="delete" size={18} />
         </Pressable>
       )}
     </View>
@@ -88,5 +89,4 @@ const makeStyles = (colors: Palette) => StyleSheet.create({
     alignItems: "center",
     backgroundColor: colors.surfaceAlt,
   },
-  deleteIcon: { fontSize: 18 },
 });

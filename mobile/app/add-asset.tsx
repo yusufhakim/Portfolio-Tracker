@@ -13,6 +13,7 @@ import {
   View,
 } from "react-native";
 
+import { Icon } from "@/components/Icon";
 import { TransactionForm } from "@/components/TransactionForm";
 import { defaultPortfolioId } from "@/db";
 import type { SearchResult } from "@/services/providers";
@@ -72,16 +73,19 @@ export default function AddAssetScreen() {
           </View>
 
           <View style={styles.searchRow}>
-            <TextInput
-              style={styles.input}
-              placeholder={market === "us" ? "Search 'apple' or 'AAPL'" : "Search fund name"}
-              placeholderTextColor={colors.textDim}
-              value={query}
-              onChangeText={setQuery}
-              autoCapitalize="none"
-              onSubmitEditing={runSearch}
-              returnKeyType="search"
-            />
+            <View style={styles.inputWrap}>
+              <Icon name="search" size={18} color={colors.textDim} />
+              <TextInput
+                style={styles.input}
+                placeholder={market === "us" ? "Search 'apple' or 'AAPL'" : "Search fund name"}
+                placeholderTextColor={colors.textDim}
+                value={query}
+                onChangeText={setQuery}
+                autoCapitalize="none"
+                onSubmitEditing={runSearch}
+                returnKeyType="search"
+              />
+            </View>
             <Pressable style={styles.searchBtn} onPress={runSearch}>
               <Text style={styles.btnText}>Search</Text>
             </Pressable>
@@ -179,12 +183,18 @@ const makeStyles = (colors: Palette) => StyleSheet.create({
   marketText: { color: colors.textDim, fontSize: 13, fontWeight: "600" },
   marketTextActive: { color: "#fff" },
   searchRow: { flexDirection: "row", alignItems: "center" },
-  input: {
+  inputWrap: {
     flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.sm,
     backgroundColor: colors.surface,
-    color: colors.text,
     borderRadius: 8,
     paddingHorizontal: spacing.md,
+  },
+  input: {
+    flex: 1,
+    color: colors.text,
     paddingVertical: spacing.md,
     fontSize: 15,
   },

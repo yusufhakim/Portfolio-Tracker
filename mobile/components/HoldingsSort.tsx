@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { Modal, Pressable, StyleSheet, Text, View } from "react-native";
 
+import { Icon } from "@/components/Icon";
 import { spacing, useColors, type Palette } from "@/theme";
 
 export type SortField = "ticker" | "name" | "value" | "day_pct" | "price";
@@ -55,7 +56,8 @@ export function HoldingsSort({ value, onChange }: Props) {
   return (
     <>
       <Pressable style={styles.btn} onPress={() => setOpen(true)}>
-        <Text style={styles.btnText}>⇅ Sort</Text>
+        <Icon name="sort" size={16} />
+        <Text style={styles.btnText}>Sort</Text>
       </Pressable>
 
       <Modal visible={open} transparent animationType="fade" onRequestClose={() => setOpen(false)}>
@@ -89,6 +91,9 @@ export function HoldingsSort({ value, onChange }: Props) {
 
 const makeStyles = (colors: Palette) => StyleSheet.create({
   btn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
     backgroundColor: colors.surfaceAlt,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,

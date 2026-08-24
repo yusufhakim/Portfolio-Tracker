@@ -2,6 +2,20 @@
 
 A running log of the Portfolio Tracker project. Newest first.
 
+## Stage 3.5 — Icon set + logo (design handoff)
+- Added a themed **stroke icon component** (`components/Icon.tsx`, 40 glyphs) and a **logo component**
+  (`components/Logo.tsx`); both inherit the theme via `useColors()` so they follow light/dark/system.
+- **Removed all emoji from the UI** per the handoff: the date-picker `📅` → `calendar` icon and the
+  transaction `🗑` → `delete` icon (red by default). Also swapped the Holdings **Sort** button glyph, the
+  add-asset **search** field prefix, and the **app-lock** screen glyph to the new set.
+- Added the **logo mark** to the left of the home-screen title.
+- Regenerated the **launcher/splash icons** (`assets/icon.png`, `adaptive-icon.png`, `splash-icon.png`)
+  from the handoff's app-icon artwork — an uptrend line-chart mark in white on the `accent` tile.
+- Note: the handoff's `Icon.tsx` shipped corrupted (web SVG tags + injected HTML) and its logo
+  *wordmark* had no text glyphs, so those were faithfully rebuilt for React Native. The manifest's
+  placements into non-UI service files and the full 4-screen redesign were not applied.
+- Verified: `tsc` clean, `npm test`, and `expo export` all pass.
+
 ## Stage 3.4 — Lock-on-exit, chart x-axis fit, search-as-you-type
 - **Lock on exit:** the app now locks the **instant it leaves the foreground** (not only on a full
   close) and asks for biometrics/PIN when you return. In-app system pickers (file/folder) and the auth

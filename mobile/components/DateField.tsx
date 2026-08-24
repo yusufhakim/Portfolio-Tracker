@@ -1,7 +1,8 @@
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { useMemo, useState } from "react";
-import { Platform, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
+import { Platform, Pressable, StyleSheet, TextInput, View } from "react-native";
 
+import { Icon } from "@/components/Icon";
 import { displayToIso, isoToDisplay, spacing, useColors, type Palette } from "@/theme";
 
 interface Props {
@@ -40,7 +41,7 @@ export function DateField({ value, onChange }: Props) {
         keyboardType="numbers-and-punctuation"
       />
       <Pressable style={styles.calBtn} onPress={() => setShowPicker(true)}>
-        <Text style={styles.calIcon}>📅</Text>
+        <Icon name="calendar" size={20} />
       </Pressable>
       {showPicker && (
         <DateTimePicker
@@ -81,5 +82,4 @@ const makeStyles = (colors: Palette) => StyleSheet.create({
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.md,
   },
-  calIcon: { fontSize: 18 },
 });
