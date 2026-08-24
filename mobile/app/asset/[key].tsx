@@ -32,13 +32,15 @@ export default function AssetDetailScreen() {
     assetType: string;
     name: string;
     currency: string;
+    portfolioId: string;
   }>();
   const assetType = params.assetType as AssetType;
   const key = params.key;
   const currency = params.currency;
+  const portfolioId = Number(params.portfolioId);
 
-  const detail = useAssetDetail(assetType, key);
-  const portfolio = usePortfolio();
+  const detail = useAssetDetail(portfolioId, assetType, key);
+  const portfolio = usePortfolio(portfolioId);
   const deleteTx = useDeleteTransaction();
   const deleteAsset = useDeleteAsset();
 
@@ -57,7 +59,10 @@ export default function AssetDetailScreen() {
           text: "Delete",
           style: "destructive",
           onPress: () =>
-            deleteAsset.mutate({ assetType, key }, { onSuccess: () => router.back() }),
+            deleteAsset.mutate(
+              { portfolioId, assetType, key },
+              { onSuccess: () => router.back() },
+            ),
         },
       ],
     );
@@ -103,7 +108,10 @@ export default function AssetDetailScreen() {
           onPress={() =>
             router.push({
               pathname: "/trade",
-              params: { assetType, key, name: params.name, currency, action: "buy" },
+              params: {
+                assetType, key, name: params.name, currency,
+                action: "buy", portfolioId: String(portfolioId),
+              },
             })
           }
         >
@@ -118,6 +126,7 @@ export default function AssetDetailScreen() {
                 params: {
                   assetType, key, name: params.name, currency,
                   action: "sell", maxQty: String(qty),
+                  portfolioId: String(portfolioId),
                 },
               })
             }

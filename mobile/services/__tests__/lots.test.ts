@@ -18,7 +18,7 @@ function tx(
   id: number, action: "buy" | "sell", qty: number, price: number, date: string,
 ): Transaction {
   return {
-    id, action, qty, price, trade_date: date,
+    id, portfolio_id: 1, action, qty, price, trade_date: date,
     asset_type: "us_equity", key: "AAPL", name: "Apple", currency: "USD",
     created_at: "",
   };

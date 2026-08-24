@@ -1,12 +1,13 @@
 // Import buy/sell transactions from an Excel (.xlsx/.xls) or CSV file.
 //
 // Expected columns (header row, case-insensitive; order doesn't matter):
-//   Market   — "US" or "India"   (US stocks/ETFs vs Indian mutual funds)
-//   Symbol   — ticker (US, e.g. AAPL) or AMFI scheme code (India, e.g. 119551)
-//   Action   — "Buy"/"Purchase" or "Sell"/"Sale"
-//   Quantity — number (decimals allowed)
-//   Price    — number, in the asset's own currency
-//   Date     — dd/mm/yyyy (also accepts a real Excel date cell)
+//   Portfolio — name of the portfolio to add to (blank → default portfolio)
+//   Market    — "US" or "India"   (US stocks/ETFs vs Indian mutual funds)
+//   Symbol    — ticker (US, e.g. AAPL) or AMFI scheme code (India, e.g. 119551)
+//   Action    — "Buy"/"Purchase" or "Sell"/"Sale"
+//   Quantity  — number (decimals allowed)
+//   Price     — number, in the asset's own currency
+//   Date      — dd/mm/yyyy (also accepts a real Excel date cell)
 // (A "Name" column is optional and ignored if present.)
 import * as DocumentPicker from "expo-document-picker";
 import { File, Paths } from "expo-file-system";
@@ -16,8 +17,15 @@ import * as XLSX from "xlsx";
 import type { AssetType, TransactionInput, TxAction } from "@/db/types";
 import { displayToIso } from "@/theme";
 
-/** Columns in the import template (no company-name column needed). */
-export const TEMPLATE_COLUMNS = ["Market", "Symbol", "Action", "Quantity", "Price", "Date"];
+/** A parsed row before its portfolio name is resolved to an id. */
+export type ParsedRow = Omit<TransactionInput, "portfolio_id"> & {
+  portfolioName: string | null;
+};
+
+/** Columns in the import template (Portfolio first; blank → default portfolio). */
+export const TEMPLATE_COLUMNS = [
+  "Portfolio", "Market", "Symbol", "Action", "Quantity", "Price", "Date",
+];
 
 /**
  * Build a ready-to-fill .xlsx template (headers + example rows) and open the
@@ -26,9 +34,9 @@ export const TEMPLATE_COLUMNS = ["Market", "Symbol", "Action", "Quantity", "Pric
 export async function downloadTemplate(): Promise<void> {
   const rows: (string | number)[][] = [
     TEMPLATE_COLUMNS,
-    ["US", "AAPL", "Buy", 10, 150, "05/02/2026"],
-    ["India", "119551", "Buy", 100, 42.5, "12/01/2026"],
-    ["US", "VOO", "Sell", 2, 480, "20/03/2026"],
+    ["USA", "US", "AAPL", "Buy", 10, 150, "05/02/2026"],
+    ["India", "India", "119551", "Buy", 100, 42.5, "12/01/2026"],
+    ["USA", "US", "VOO", "Sell", 2, 480, "20/03/2026"],
   ];
   const ws = XLSX.utils.aoa_to_sheet(rows);
   const wb = XLSX.utils.book_new();
@@ -54,7 +62,7 @@ export async function downloadTemplate(): Promise<void> {
 }
 
 export interface ImportResult {
-  toInsert: TransactionInput[];
+  toInsert: ParsedRow[];
   errors: string[];
   totalRows: number;
   canceled?: boolean;
@@ -146,7 +154,7 @@ export async function pickAndParseTransactions(): Promise<ImportResult> {
     defval: "",
   });
 
-  const toInsert: TransactionInput[] = [];
+  const toInsert: ParsedRow[] = [];
   const errors: string[] = [];
 
   rows.forEach((row, i) => {
@@ -161,8 +169,10 @@ export async function pickAndParseTransactions(): Promise<ImportResult> {
     const price = parseNumber(field(row, ["price", "rate", "nav", "cost"]));
     const dateIso = parseDate(field(row, ["date", "trade date", "trade_date"]));
     const nameRaw = field(row, ["name", "description", "fund name", "company"]);
+    const portfolioRaw = field(row, ["portfolio", "bucket", "account"]);
 
     const symbol = String(symbolRaw ?? "").trim();
+    const portfolioName = String(portfolioRaw ?? "").trim() || null;
 
     if (!market) { errors.push(`Row ${line}: missing/invalid Market (use "US" or "India")`); return; }
     if (!symbol) { errors.push(`Row ${line}: missing Symbol`); return; }
@@ -172,6 +182,7 @@ export async function pickAndParseTransactions(): Promise<ImportResult> {
     if (!dateIso) { errors.push(`Row ${line}: Date must be dd/mm/yyyy`); return; }
 
     toInsert.push({
+      portfolioName,
       asset_type: market.asset_type,
       key: market.asset_type === "in_mf" ? symbol : symbol.toUpperCase(),
       name: String(nameRaw ?? "").trim() || symbol,

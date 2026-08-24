@@ -94,10 +94,11 @@ export default function SettingsScreen() {
         <Text style={styles.desc}>
           Bulk-add buy and sell transactions from a spreadsheet with these columns:
         </Text>
-        <Text style={styles.code}>Market · Symbol · Action · Quantity · Price · Date</Text>
+        <Text style={styles.code}>Portfolio · Market · Symbol · Action · Quantity · Price · Date</Text>
         <Text style={styles.desc}>
-          • Market: “US” or “India”  • Symbol: ticker (US) or AMFI scheme code (India)  • Action:
-          Buy or Sell  • Price: in the asset's own currency  • Date: dd/mm/yyyy
+          • Portfolio: which bucket to add to (blank = your default; a new name is created
+          automatically)  • Market: “US” or “India”  • Symbol: ticker (US) or AMFI scheme code
+          (India)  • Action: Buy or Sell  • Price: in the asset's own currency  • Date: dd/mm/yyyy
         </Text>
         <Text style={styles.desc}>
           Step 1: tap “Download template” and save it to your phone. Fill in your rows, then Step 2:

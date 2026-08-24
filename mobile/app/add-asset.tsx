@@ -1,4 +1,4 @@
-import { useRouter } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { useState } from "react";
 import {
   ActivityIndicator,
@@ -13,6 +13,7 @@ import {
 } from "react-native";
 
 import { TransactionForm } from "@/components/TransactionForm";
+import { defaultPortfolioId } from "@/db";
 import type { SearchResult } from "@/services/providers";
 import { useAddTransaction, useSearch } from "@/hooks/data";
 import { colors, spacing } from "@/theme";
@@ -21,6 +22,7 @@ type Market = "us" | "in_mf";
 
 export default function AddAssetScreen() {
   const router = useRouter();
+  const params = useLocalSearchParams<{ portfolioId?: string }>();
   const [market, setMarket] = useState<Market>("us");
   const [query, setQuery] = useState("");
   const [submitted, setSubmitted] = useState("");
@@ -120,9 +122,13 @@ export default function AddAssetScreen() {
                 ? `Could not save: ${addTx.error instanceof Error ? addTx.error.message : String(addTx.error)}`
                 : null
             }
-            onSubmit={(v) =>
+            onSubmit={async (v) => {
+              const pid = params.portfolioId
+                ? Number(params.portfolioId)
+                : await defaultPortfolioId();
               addTx.mutate(
                 {
+                  portfolio_id: pid,
                   asset_type: selected.asset_type,
                   key: selected.key,
                   name: selected.name,
@@ -133,8 +139,8 @@ export default function AddAssetScreen() {
                   trade_date: v.trade_date,
                 },
                 { onSuccess: () => router.back() },
-              )
-            }
+              );
+            }}
           />
         </View>
       )}

@@ -1,10 +1,10 @@
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
+import { ChangeText } from "@/components/ChangeText";
 import type { AssetType, Holding } from "@/db/types";
 import {
   colors,
   formatCurrency,
-  formatPct,
   formatQty,
   formatSignedCurrency,
   gainColor,
@@ -36,15 +36,21 @@ export function HoldingRow({ holding: h, onPress }: Props) {
           </View>
         </View>
         <Text style={styles.sub}>{formatQty(h.qty)} @ {formatCurrency(h.price, ccy)}</Text>
-        <Text style={[styles.day, { color: gainColor(h.day_change) }]}>
-          Today {formatSignedCurrency(h.day_change, ccy)} ({formatPct(h.day_change_pct)})
-        </Text>
+        <View style={styles.dayRow}>
+          <Text style={[styles.day, { color: gainColor(h.day_change) }]}>
+            Today {formatSignedCurrency(h.day_change, ccy)}{"  "}
+          </Text>
+          <ChangeText pct={h.day_change_pct} size={12} />
+        </View>
       </View>
       <View style={styles.right}>
         <Text style={styles.value}>{formatCurrency(h.market_value, ccy)}</Text>
-        <Text style={[styles.gain, { color: gainColor(h.gain) }]}>
-          {formatSignedCurrency(h.gain, ccy)} ({formatPct(h.gain_pct)})
-        </Text>
+        <View style={styles.gainRow}>
+          <Text style={[styles.gain, { color: gainColor(h.gain) }]}>
+            {formatSignedCurrency(h.gain, ccy)}{"  "}
+          </Text>
+          <ChangeText pct={h.gain_pct} size={12} />
+        </View>
       </View>
     </Pressable>
   );
@@ -73,8 +79,10 @@ const styles = StyleSheet.create({
   },
   badgeText: { color: colors.textDim, fontSize: 10, fontWeight: "600" },
   sub: { color: colors.textDim, fontSize: 12, marginTop: 3 },
-  day: { fontSize: 12, marginTop: 3 },
+  dayRow: { flexDirection: "row", alignItems: "center", marginTop: 3 },
+  day: { fontSize: 12 },
   right: { alignItems: "flex-end" },
   value: { color: colors.text, fontSize: 16, fontWeight: "700" },
-  gain: { fontSize: 12, marginTop: 4 },
+  gainRow: { flexDirection: "row", alignItems: "center", marginTop: 4 },
+  gain: { fontSize: 12 },
 });

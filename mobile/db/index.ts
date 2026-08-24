@@ -5,6 +5,7 @@ import type {
   Asset,
   AssetType,
   HistoryPoint,
+  Portfolio,
   PriceLatest,
   Transaction,
   TransactionInput,
@@ -78,7 +79,83 @@ async function migrate(db: SQLite.SQLiteDatabase): Promise<void> {
       key TEXT PRIMARY KEY,
       value TEXT
     );
+
+    CREATE TABLE IF NOT EXISTS portfolios (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL,
+      created_at TEXT NOT NULL,
+      sort_order INTEGER NOT NULL DEFAULT 0
+    );
   `);
+
+  // --- Stage 3 migration: transactions.portfolio_id (buckets) ---
+  const cols = await db.getAllAsync<{ name: string }>(`PRAGMA table_info(transactions)`);
+  if (!cols.some((c) => c.name === "portfolio_id")) {
+    await db.execAsync(`ALTER TABLE transactions ADD COLUMN portfolio_id INTEGER`);
+  }
+  // Guarantee at least one portfolio exists.
+  let def = await db.getFirstAsync<{ id: number }>(
+    `SELECT id FROM portfolios ORDER BY sort_order ASC, id ASC LIMIT 1`,
+  );
+  if (!def) {
+    const res = await db.runAsync(
+      `INSERT INTO portfolios (name, created_at, sort_order) VALUES (?, ?, 0)`,
+      "My Portfolio", new Date().toISOString(),
+    );
+    def = { id: res.lastInsertRowId };
+  }
+  // Move any pre-Stage-3 (unassigned) transactions into the default portfolio.
+  await db.runAsync(`UPDATE transactions SET portfolio_id = ? WHERE portfolio_id IS NULL`, def.id);
+  await db.execAsync(`CREATE INDEX IF NOT EXISTS ix_tx_portfolio ON transactions(portfolio_id);`);
+}
+
+// --------------------------------------------------------------------------- //
+// Portfolios
+// --------------------------------------------------------------------------- //
+export async function listPortfolios(): Promise<Portfolio[]> {
+  const db = await getDb();
+  return db.getAllAsync<Portfolio>(
+    `SELECT * FROM portfolios ORDER BY sort_order ASC, id ASC`,
+  );
+}
+
+export async function getPortfolioById(id: number): Promise<Portfolio | null> {
+  const db = await getDb();
+  return db.getFirstAsync<Portfolio>(`SELECT * FROM portfolios WHERE id = ?`, id);
+}
+
+export async function createPortfolio(name: string): Promise<number> {
+  const db = await getDb();
+  const row = await db.getFirstAsync<{ m: number }>(
+    `SELECT COALESCE(MAX(sort_order), -1) + 1 AS m FROM portfolios`,
+  );
+  const res = await db.runAsync(
+    `INSERT INTO portfolios (name, created_at, sort_order) VALUES (?, ?, ?)`,
+    name.trim(), new Date().toISOString(), row ? row.m : 0,
+  );
+  return res.lastInsertRowId;
+}
+
+export async function renamePortfolio(id: number, name: string): Promise<void> {
+  const db = await getDb();
+  await db.runAsync(`UPDATE portfolios SET name = ? WHERE id = ?`, name.trim(), id);
+}
+
+/** Delete a portfolio and all its transactions. */
+export async function deletePortfolio(id: number): Promise<void> {
+  const db = await getDb();
+  await db.runAsync(`DELETE FROM transactions WHERE portfolio_id = ?`, id);
+  await db.runAsync(`DELETE FROM portfolios WHERE id = ?`, id);
+}
+
+/** Convenience: id of the first portfolio (used as a default target). */
+export async function defaultPortfolioId(): Promise<number> {
+  const db = await getDb();
+  const row = await db.getFirstAsync<{ id: number }>(
+    `SELECT id FROM portfolios ORDER BY sort_order ASC, id ASC LIMIT 1`,
+  );
+  if (row) return row.id;
+  return createPortfolio("My Portfolio");
 }
 
 // --------------------------------------------------------------------------- //
@@ -88,9 +165,9 @@ export async function insertTransaction(tx: TransactionInput): Promise<number> {
   const db = await getDb();
   const created = new Date().toISOString();
   const res = await db.runAsync(
-    `INSERT INTO transactions (asset_type, key, name, currency, action, qty, price, trade_date, created_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-    tx.asset_type, tx.key, tx.name, tx.currency, tx.action, tx.qty, tx.price, tx.trade_date, created,
+    `INSERT INTO transactions (portfolio_id, asset_type, key, name, currency, action, qty, price, trade_date, created_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    tx.portfolio_id, tx.asset_type, tx.key, tx.name, tx.currency, tx.action, tx.qty, tx.price, tx.trade_date, created,
   );
   // Ensure an asset cache row exists.
   await upsertAsset({
@@ -109,9 +186,9 @@ export async function insertTransactionsBulk(
   const assetMap = new Map<string, Asset>();
   for (const tx of txns) {
     await db.runAsync(
-      `INSERT INTO transactions (asset_type, key, name, currency, action, qty, price, trade_date, created_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      tx.asset_type, tx.key, tx.name, tx.currency, tx.action, tx.qty, tx.price, tx.trade_date, created,
+      `INSERT INTO transactions (portfolio_id, asset_type, key, name, currency, action, qty, price, trade_date, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      tx.portfolio_id, tx.asset_type, tx.key, tx.name, tx.currency, tx.action, tx.qty, tx.price, tx.trade_date, created,
     );
     const k = `${tx.asset_type}:${tx.key}`;
     if (!assetMap.has(k)) {
@@ -151,6 +228,7 @@ export async function getTransaction(id: number): Promise<Transaction | null> {
   return db.getFirstAsync<Transaction>(`SELECT * FROM transactions WHERE id = ?`, id);
 }
 
+/** All transactions across every portfolio (used for dashboard aggregation). */
 export async function listTransactions(): Promise<Transaction[]> {
   const db = await getDb();
   return db.getAllAsync<Transaction>(
@@ -158,14 +236,24 @@ export async function listTransactions(): Promise<Transaction[]> {
   );
 }
 
+export async function listTransactionsByPortfolio(portfolioId: number): Promise<Transaction[]> {
+  const db = await getDb();
+  return db.getAllAsync<Transaction>(
+    `SELECT * FROM transactions WHERE portfolio_id = ? ORDER BY trade_date DESC, id DESC`,
+    portfolioId,
+  );
+}
+
 export async function listTransactionsByAsset(
+  portfolioId: number,
   assetType: AssetType,
   key: string,
 ): Promise<Transaction[]> {
   const db = await getDb();
   return db.getAllAsync<Transaction>(
-    `SELECT * FROM transactions WHERE asset_type = ? AND key = ? ORDER BY trade_date DESC, id DESC`,
-    assetType, key,
+    `SELECT * FROM transactions WHERE portfolio_id = ? AND asset_type = ? AND key = ?
+     ORDER BY trade_date DESC, id DESC`,
+    portfolioId, assetType, key,
   );
 }
 
@@ -186,13 +274,17 @@ export async function listAssets(): Promise<Asset[]> {
   return db.getAllAsync<Asset>(`SELECT * FROM assets ORDER BY key ASC`);
 }
 
-/** Delete an asset and all its transactions + cached data. */
-export async function deleteAsset(assetType: AssetType, key: string): Promise<void> {
+/** Delete a holding within a portfolio (removes that portfolio's transactions for
+ * the asset). Global price/asset caches are left intact — they may be shared with
+ * other portfolios and are harmless to keep. */
+export async function deleteAsset(
+  portfolioId: number, assetType: AssetType, key: string,
+): Promise<void> {
   const db = await getDb();
-  await db.runAsync(`DELETE FROM transactions WHERE asset_type = ? AND key = ?`, assetType, key);
-  await db.runAsync(`DELETE FROM assets WHERE asset_type = ? AND key = ?`, assetType, key);
-  await db.runAsync(`DELETE FROM price_latest WHERE asset_type = ? AND key = ?`, assetType, key);
-  await db.runAsync(`DELETE FROM price_history WHERE asset_type = ? AND key = ?`, assetType, key);
+  await db.runAsync(
+    `DELETE FROM transactions WHERE portfolio_id = ? AND asset_type = ? AND key = ?`,
+    portfolioId, assetType, key,
+  );
 }
 
 // --------------------------------------------------------------------------- //

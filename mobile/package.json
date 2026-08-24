@@ -8,7 +8,7 @@
     "ios": "expo start --ios",
     "web": "expo start --web",
     "typecheck": "tsc --noEmit",
-    "test": "node --experimental-strip-types services/__tests__/lots.test.ts"
+    "test": "node --experimental-strip-types services/__tests__/lots.test.ts && node --experimental-strip-types services/__tests__/formatting.test.ts"
   },
   "dependencies": {
     "@react-native-community/datetimepicker": "8.4.4",

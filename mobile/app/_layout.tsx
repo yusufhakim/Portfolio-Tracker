@@ -32,7 +32,12 @@ export default function RootLayout() {
             contentStyle: { backgroundColor: colors.bg },
           }}
         >
-          <Stack.Screen name="index" options={{ title: "Portfolio" }} />
+          <Stack.Screen name="index" options={{ headerShown: false }} />
+          <Stack.Screen name="portfolio/[id]" options={{ title: "Portfolio" }} />
+          <Stack.Screen
+            name="portfolio-edit"
+            options={{ title: "Portfolio", presentation: "modal" }}
+          />
           <Stack.Screen
             name="add-asset"
             options={{ title: "Add Purchase", presentation: "modal" }}

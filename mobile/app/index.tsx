@@ -2,61 +2,44 @@ import { Link, useRouter } from "expo-router";
 import { useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   FlatList,
   Pressable,
   RefreshControl,
+  ScrollView,
   StyleSheet,
   Text,
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { HoldingRow } from "@/components/HoldingRow";
-import { PortfolioChart } from "@/components/PortfolioChart";
-import { RangeToggle } from "@/components/RangeToggle";
+import { IndexCard } from "@/components/IndexCard";
+import { PortfolioRow } from "@/components/PortfolioRow";
 import { SegmentedToggle } from "@/components/SegmentedToggle";
-import { TransactionRow } from "@/components/TransactionRow";
-import type { Holding, RangeKey, Transaction } from "@/db/types";
+import type { PortfolioWithValue } from "@/db/types";
 import {
   useAutoRefresh,
-  useDeleteTransaction,
-  useHistory,
+  useIndices,
   useManualRefresh,
-  usePortfolio,
-  useTransactions,
+  usePortfolios,
 } from "@/hooks/data";
-import { confirmDeleteTransaction } from "@/components/confirmDeleteTransaction";
-import {
-  colors,
-  formatCurrency,
-  formatPct,
-  formatSignedCurrency,
-  gainColor,
-  spacing,
-} from "@/theme";
+import { colors, spacing } from "@/theme";
 
-type Tab = "holdings" | "transactions";
+type Market = "us" | "in";
 
-export default function PortfolioScreen() {
+export default function DashboardScreen() {
   useAutoRefresh();
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const [range, setRange] = useState<RangeKey>("1M");
-  const [tab, setTab] = useState<Tab>("holdings");
+  const [market, setMarket] = useState<Market>("us");
 
-  const portfolioQuery = usePortfolio();
-  const historyQuery = useHistory(range);
-  const txQuery = useTransactions();
+  const indices = useIndices(market);
+  const portfolios = usePortfolios();
   const refresh = useManualRefresh();
-  const deleteTx = useDeleteTransaction();
-
-  const p = portfolioQuery.data;
 
   const header = (
     <View>
       <View style={styles.topBar}>
-        <Text style={styles.appName}>Portfolio</Text>
+        <Text style={styles.appName}>Yusuf's Portfolio Tracker</Text>
         <Link href="/settings" asChild>
           <Pressable hitSlop={10}>
             <Text style={styles.gear}>⚙︎</Text>
@@ -64,55 +47,41 @@ export default function PortfolioScreen() {
         </Link>
       </View>
 
-      <View style={styles.summary}>
-        <Text style={styles.summaryLabel}>Total Value (USD)</Text>
-        <Text style={styles.summaryValue}>{formatCurrency(p?.total_value_usd, "USD")}</Text>
-        <Text style={[styles.summaryGain, { color: gainColor(p?.total_gain_usd) }]}>
-          {formatSignedCurrency(p?.total_gain_usd, "USD")} ({formatPct(p?.total_gain_pct)}) all-time
-        </Text>
-        <Text style={[styles.summaryDay, { color: gainColor(p?.day_change_usd) }]}>
-          {formatSignedCurrency(p?.day_change_usd, "USD")} today
-        </Text>
+      <SegmentedToggle
+        options={[
+          { value: "us", label: "USA" },
+          { value: "in", label: "India" },
+        ]}
+        value={market}
+        onChange={setMarket}
+      />
+
+      <View style={styles.indexBlock}>
+        {indices.isLoading ? (
+          <ActivityIndicator color={colors.accent} style={{ marginVertical: spacing.lg }} />
+        ) : (
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.indexRow}
+          >
+            {(indices.data ?? []).map((q) => (
+              <IndexCard key={q.symbol} quote={q} />
+            ))}
+          </ScrollView>
+        )}
       </View>
 
-      <PortfolioChart
-        points={historyQuery.data ?? []}
-        baseCurrency="USD"
-        loading={historyQuery.isLoading}
-      />
-      <RangeToggle value={range} onChange={setRange} />
-
-      <View style={styles.controlsRow}>
-        <View style={{ flex: 1 }}>
-          <SegmentedToggle
-            options={[
-              { value: "holdings", label: "Holdings" },
-              { value: "transactions", label: "Transactions" },
-            ]}
-            value={tab}
-            onChange={setTab}
-          />
-        </View>
-        <Link href="/add-asset" asChild>
-          <Pressable style={styles.addBtn}>
-            <Text style={styles.addBtnText}>+ Add</Text>
+      <View style={styles.sectionHeader}>
+        <Text style={styles.sectionTitle}>Portfolios</Text>
+        <Link href={{ pathname: "/portfolio-edit" }} asChild>
+          <Pressable style={styles.addBtn} hitSlop={8}>
+            <Text style={styles.addBtnText}>+</Text>
           </Pressable>
         </Link>
       </View>
     </View>
   );
-
-  if (portfolioQuery.isLoading) {
-    return (
-      <View style={styles.center}>
-        <ActivityIndicator color={colors.accent} />
-      </View>
-    );
-  }
-
-  const holdings = p?.holdings ?? [];
-  const txns = txQuery.data ?? [];
-  const showingHoldings = tab === "holdings";
 
   return (
     <FlatList
@@ -122,45 +91,33 @@ export default function PortfolioScreen() {
         paddingTop: insets.top + spacing.sm,
         paddingBottom: insets.bottom + spacing.xl,
       }}
-      data={showingHoldings ? holdings : txns}
-      keyExtractor={(item: Holding | Transaction) =>
-        showingHoldings
-          ? `${(item as Holding).asset_type}:${(item as Holding).key}`
-          : `tx-${(item as Transaction).id}`
-      }
+      data={portfolios.data ?? []}
+      keyExtractor={(p: PortfolioWithValue) => `pf-${p.id}`}
       ListHeaderComponent={header}
-      renderItem={({ item }) =>
-        showingHoldings ? (
-          <HoldingRow
-            holding={item as Holding}
-            onPress={(h) =>
-              router.push({
-                pathname: "/asset/[key]",
-                params: { key: h.key, assetType: h.asset_type, name: h.name, currency: h.currency },
-              })
-            }
-          />
-        ) : (
-          <TransactionRow
-            tx={item as Transaction}
-            onPress={(t) =>
-              router.push({ pathname: "/transaction/[id]", params: { id: String(t.id) } })
-            }
-            onDelete={(t) => confirmDeleteTransaction(t, () => deleteTx.mutate(t.id))}
-          />
-        )
-      }
+      renderItem={({ item }) => (
+        <PortfolioRow
+          portfolio={item}
+          onPress={(p) =>
+            router.push({ pathname: "/portfolio/[id]", params: { id: String(p.id) } })
+          }
+        />
+      )}
       ListEmptyComponent={
-        <Text style={styles.empty}>
-          {showingHoldings
-            ? "No holdings yet. Tap “+ Add” to record your first purchase."
-            : "No transactions yet."}
-        </Text>
+        portfolios.isLoading ? (
+          <ActivityIndicator color={colors.accent} style={{ marginTop: spacing.lg }} />
+        ) : (
+          <Text style={styles.empty}>
+            No portfolios yet. Tap “+” to create your first one.
+          </Text>
+        )
       }
       refreshControl={
         <RefreshControl
           refreshing={refresh.isPending}
-          onRefresh={() => refresh.mutate()}
+          onRefresh={() => {
+            refresh.mutate();
+            indices.refetch();
+          }}
           tintColor={colors.accent}
         />
       }
@@ -170,33 +127,32 @@ export default function PortfolioScreen() {
 
 const styles = StyleSheet.create({
   list: { flex: 1, backgroundColor: colors.bg },
-  center: { flex: 1, backgroundColor: colors.bg, justifyContent: "center", alignItems: "center" },
   topBar: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: spacing.md,
+    marginBottom: spacing.lg,
   },
-  appName: { color: colors.text, fontSize: 22, fontWeight: "800" },
+  appName: { color: colors.text, fontSize: 22, fontWeight: "800", flex: 1, marginRight: spacing.md },
   gear: { color: colors.textDim, fontSize: 22 },
-  summary: { alignItems: "center", marginBottom: spacing.lg },
-  summaryLabel: { color: colors.textDim, fontSize: 13 },
-  summaryValue: { color: colors.text, fontSize: 34, fontWeight: "800", marginTop: 4 },
-  summaryGain: { fontSize: 14, marginTop: 6, fontWeight: "600" },
-  summaryDay: { fontSize: 13, marginTop: 2 },
-  controlsRow: {
+  indexBlock: { minHeight: 60, marginTop: spacing.md },
+  indexRow: { paddingVertical: spacing.sm },
+  sectionHeader: {
     flexDirection: "row",
     alignItems: "center",
-    marginTop: spacing.xl,
+    justifyContent: "space-between",
+    marginTop: spacing.lg,
     marginBottom: spacing.md,
   },
+  sectionTitle: { color: colors.text, fontSize: 18, fontWeight: "700" },
   addBtn: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
     backgroundColor: colors.accent,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    borderRadius: 8,
-    marginLeft: spacing.md,
+    alignItems: "center",
+    justifyContent: "center",
   },
-  addBtnText: { color: "#fff", fontWeight: "700" },
+  addBtnText: { color: "#fff", fontSize: 22, fontWeight: "700", lineHeight: 26 },
   empty: { color: colors.textDim, textAlign: "center", marginTop: spacing.lg },
 });

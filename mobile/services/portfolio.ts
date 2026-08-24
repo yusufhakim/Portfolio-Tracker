@@ -4,14 +4,17 @@ import {
   getAllPriceLatest,
   getHistorySince,
   latestFxRate,
-  listAssets,
+  listPortfolios,
   listTransactions,
+  listTransactionsByPortfolio,
 } from "@/db";
 import type {
   Asset,
   Holding,
   PortfolioHistoryPoint,
   PortfolioTotals,
+  PortfolioWithValue,
+  PriceLatest,
   RangeKey,
   Transaction,
 } from "@/db/types";
@@ -26,17 +29,30 @@ function dayKey(iso: string): string {
   return iso.slice(0, 10); // yyyy-mm-dd
 }
 
+function round2(n: number): number {
+  return Math.round(n * 100) / 100;
+}
+
 export { reduceLots };
 
-export async function getPortfolio(): Promise<PortfolioTotals> {
-  const [assets, txns, latest, usdInr] = await Promise.all([
-    listAssets(),
-    listTransactions(),
-    getAllPriceLatest(),
-    latestFxRate(FX_PAIR),
-  ]);
+/** Distinct assets referenced by a set of transactions. */
+function assetsFromTxns(txns: Transaction[]): Asset[] {
+  const m = new Map<string, Asset>();
+  for (const t of txns) {
+    const k = `${t.asset_type}:${t.key}`;
+    if (!m.has(k)) {
+      m.set(k, { asset_type: t.asset_type, key: t.key, name: t.name, currency: t.currency });
+    }
+  }
+  return [...m.values()];
+}
 
-  const priceMap = new Map(latest.map((p) => [`${p.asset_type}:${p.key}`, p]));
+/** Value a set of transactions against the latest prices (single FX snapshot). */
+function buildHoldings(
+  txns: Transaction[],
+  priceMap: Map<string, PriceLatest>,
+  usdInr: number | null,
+): { holdings: Holding[]; totalValue: number; totalCost: number; totalDay: number } {
   const txByAsset = new Map<string, Transaction[]>();
   for (const t of txns) {
     const k = `${t.asset_type}:${t.key}`;
@@ -50,7 +66,7 @@ export async function getPortfolio(): Promise<PortfolioTotals> {
   let totalCost = 0;
   let totalDay = 0;
 
-  for (const a of assets) {
+  for (const a of assetsFromTxns(txns)) {
     const k = `${a.asset_type}:${a.key}`;
     const { qty, costBasis } = reduceLots(txByAsset.get(k) ?? []);
     if (qty <= EPS) continue; // fully sold — not a current holding
@@ -98,7 +114,19 @@ export async function getPortfolio(): Promise<PortfolioTotals> {
     });
   }
 
-  holdings.sort((a, b) => (b.market_value_usd ?? 0) - (a.market_value_usd ?? 0));
+  holdings.sort((x, y) => (y.market_value_usd ?? 0) - (x.market_value_usd ?? 0));
+  return { holdings, totalValue, totalCost, totalDay };
+}
+
+/** Full valuation of one portfolio (holdings + totals, USD). */
+export async function getPortfolio(portfolioId: number): Promise<PortfolioTotals> {
+  const [txns, latest, usdInr] = await Promise.all([
+    listTransactionsByPortfolio(portfolioId),
+    getAllPriceLatest(),
+    latestFxRate(FX_PAIR),
+  ]);
+  const priceMap = new Map(latest.map((p) => [`${p.asset_type}:${p.key}`, p]));
+  const { holdings, totalValue, totalCost, totalDay } = buildHoldings(txns, priceMap, usdInr);
   const totalGain = totalValue - totalCost;
 
   return {
@@ -111,21 +139,52 @@ export async function getPortfolio(): Promise<PortfolioTotals> {
   };
 }
 
+/** Every portfolio with its current USD value and daily change (for the dashboard). */
+export async function listPortfoliosWithValue(): Promise<PortfolioWithValue[]> {
+  const [portfolios, txns, latest, usdInr] = await Promise.all([
+    listPortfolios(),
+    listTransactions(),
+    getAllPriceLatest(),
+    latestFxRate(FX_PAIR),
+  ]);
+  const priceMap = new Map(latest.map((p) => [`${p.asset_type}:${p.key}`, p]));
+  const byPf = new Map<number, Transaction[]>();
+  for (const t of txns) {
+    const arr = byPf.get(t.portfolio_id) ?? [];
+    arr.push(t);
+    byPf.set(t.portfolio_id, arr);
+  }
+
+  return portfolios.map((p) => {
+    const { totalValue, totalDay } = buildHoldings(byPf.get(p.id) ?? [], priceMap, usdInr);
+    const prior = totalValue - totalDay;
+    const pct = prior > EPS ? (totalDay / prior) * 100 : null;
+    return {
+      ...p,
+      value_usd: round2(totalValue),
+      day_change_usd: round2(totalDay),
+      day_change_pct: pct === null ? null : round2(pct),
+    };
+  });
+}
+
 /**
- * Portfolio value over time (USD), reflecting the qty actually held on each day
- * (derived from transaction dates) times that day's close, converted to USD.
+ * Portfolio value over time (USD) for one portfolio, reflecting the qty actually
+ * held on each day (from transaction dates) × that day's close, converted to USD.
  */
-export async function getHistory(range: RangeKey): Promise<PortfolioHistoryPoint[]> {
+export async function getHistory(
+  portfolioId: number, range: RangeKey,
+): Promise<PortfolioHistoryPoint[]> {
   const days = RANGE_DAYS[range] ?? 366;
   const cutoff = new Date(Date.now() - days * 86400_000).toISOString();
-  const [assets, txns] = await Promise.all([listAssets(), listTransactions()]);
+  const txns = await listTransactionsByPortfolio(portfolioId);
+  const assets = assetsFromTxns(txns);
   if (assets.length === 0) return [];
 
-  // Per-asset daily close series + chronological qty deltas.
   interface Series {
     asset: Asset;
-    daily: Map<string, number>; // dayKey -> close
-    deltas: { date: string; delta: number }[]; // sorted ascending
+    daily: Map<string, number>;
+    deltas: { date: string; delta: number }[];
   }
   const series: Series[] = [];
   const allDays = new Set<string>();
@@ -147,7 +206,6 @@ export async function getHistory(range: RangeKey): Promise<PortfolioHistoryPoint
   if (allDays.size === 0) return [];
   const orderedDays = [...allDays].sort();
 
-  // running state per asset
   const lastClose = new Map<string, number>();
   const deltaPtr = new Map<string, number>();
   const heldQty = new Map<string, number>();
@@ -164,7 +222,6 @@ export async function getHistory(range: RangeKey): Promise<PortfolioHistoryPoint
     let hasValue = false;
     for (const s of series) {
       const kkey = `${s.asset.asset_type}:${s.asset.key}`;
-      // advance qty deltas up to and including this day
       let ptr = deltaPtr.get(s.asset.key) ?? 0;
       let qty = heldQty.get(s.asset.key) ?? 0;
       while (ptr < s.deltas.length && s.deltas[ptr].date <= day) {
@@ -174,7 +231,6 @@ export async function getHistory(range: RangeKey): Promise<PortfolioHistoryPoint
       deltaPtr.set(s.asset.key, ptr);
       heldQty.set(s.asset.key, qty);
 
-      // forward-fill close
       const c = s.daily.get(day);
       if (c !== undefined) lastClose.set(kkey, c);
       const close = lastClose.get(kkey);
@@ -190,8 +246,4 @@ export async function getHistory(range: RangeKey): Promise<PortfolioHistoryPoint
     if (hasValue) out.push({ ts: `${day}T00:00:00.000Z`, value: round2(total) });
   }
   return out;
-}
-
-function round2(n: number): number {
-  return Math.round(n * 100) / 100;
 }

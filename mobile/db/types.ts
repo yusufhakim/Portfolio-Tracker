@@ -6,9 +6,25 @@ export type RangeKey = "1D" | "1W" | "1M" | "3M" | "1Y" | "ALL";
 
 export const US_ASSET_TYPES: AssetType[] = ["us_equity", "us_etf"];
 
+/** A named portfolio ("bucket"); each transaction belongs to exactly one. */
+export interface Portfolio {
+  id: number;
+  name: string;
+  created_at: string;
+  sort_order: number;
+}
+
+/** A portfolio plus its computed USD value and daily change. */
+export interface PortfolioWithValue extends Portfolio {
+  value_usd: number;
+  day_change_usd: number;
+  day_change_pct: number | null;
+}
+
 /** A single buy/sell transaction — the source of truth for holdings. */
 export interface Transaction {
   id: number;
+  portfolio_id: number;
   asset_type: AssetType;
   key: string; // ticker (US) or AMFI scheme code (India MF)
   name: string;

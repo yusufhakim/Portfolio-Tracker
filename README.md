@@ -1,15 +1,23 @@
 # Portfolio Tracker
 
 A mobile portfolio tracker for **US equities, US ETFs, and Indian mutual funds**. Record your buys and
-sells, see each holding with today's change, value and total gain/loss, and a performance graph you can
-toggle across time ranges.
+sells across **multiple named portfolios**, see each holding with today's change, value and total
+gain/loss, watch the major **US and India market indices**, and open any portfolio for a performance
+graph you can toggle across time ranges.
 
 > 🟢 **Just want the app on your phone?** As of **Stage 2** this is a **fully standalone Android app** —
 > no computer, no server. Build it once and install the APK: follow
 > **[BUILD-APK-WINDOWS.md](BUILD-APK-WINDOWS.md)**. After that your laptop is never needed.
 
 ## Stages
-- **Stage 2 (current):** self-contained on-device app — local SQLite storage, prices fetched directly
+- **Stage 3 (current):** a **dashboard-first** redesign. The home screen shows a titled header with a
+  settings gear, a **USA / India** market toggle with live **index cards** (S&P 500 · Nasdaq · Dow for
+  USA; Sensex · Nifty 50 for India, with mini sparklines), and a **Portfolios** section where you split
+  holdings into named buckets (e.g. USA, India, Retirement). Each portfolio row shows its **value in
+  USD** (0 dp) and **daily change %** with a colored ▲/▼ arrow (green up, red down); tap one to open its
+  full graph / Holdings / Transactions view. Adds create/rename/delete of portfolios and a **Portfolio**
+  column in the import template.
+- **Stage 2:** self-contained on-device app — local SQLite storage, prices fetched directly
   from the phone, transaction/lot tracking (buy/sell + dates), edit/delete, a Holdings/Transactions
   toggle, and best-effort background refresh. Packaged as an installable **APK** (built locally with
   Android Studio's toolchain, or via EAS). The mobile app lives in `mobile/`; there is
@@ -18,10 +26,16 @@ toggle across time ranges.
   folder and `windows-start-backend.bat` / `windows-start-app.bat` / `GETTING-STARTED-WINDOWS.md` are
   kept for reference only and are **no longer used** by the Stage 2 app.
 
-## What it does (Stage 2)
-- **Record transactions** — search a US stock by **name or ticker** ("apple" or "AAPL") or an Indian
-  fund by name; enter **fractional quantity**, **price in the asset's own currency**, and a **date**
-  (calendar picker or typed dd/mm/yyyy).
+## What it does (Stage 3)
+- **Dashboard home** — header **“Yusuf's Portfolio Tracker”** + settings gear; a **USA / India** toggle
+  swapping live **index cards** (level · colored daily change · sparkline); a **Portfolios** list with a
+  **+** to create a new one.
+- **Multiple portfolios (buckets)** — every transaction belongs to exactly one portfolio. Create, rename,
+  or delete portfolios; each row shows **USD value (0 dp)** and **daily change %** with a green/red arrow.
+  Existing data is migrated into a default **“My Portfolio”** on first launch.
+- **Record transactions** — inside a portfolio, search a US stock by **name or ticker** ("apple" or
+  "AAPL") or an Indian fund by name; enter **fractional quantity**, **price in the asset's own
+  currency**, and a **date** (calendar picker or typed dd/mm/yyyy).
 - **Holdings view** — per asset: ticker · qty held · today's change ($/₹ and %) · current value · total
   gain/loss (each in its native currency); the **portfolio total and top graph are in USD**.
 - **Transactions view** — a toggle beside Holdings lists every buy/sell newest→oldest
@@ -30,28 +44,34 @@ toggle across time ranges.
   the **🗑** on any transaction row to delete a single transaction (delete an entire holding from its
   detail screen).
 - **Import from Excel / CSV** — Settings → “Download template” saves a ready-made `.xlsx`
-  (columns **Market · Symbol · Action · Quantity · Price · Date**); fill it and “Choose file & import”
-  to bulk-add buy/sell transactions (rows validated with per-row errors; imported assets get prices +
-  history automatically).
+  (columns **Portfolio · Market · Symbol · Action · Quantity · Price · Date**); fill it and “Choose file
+  & import” to bulk-add buy/sell transactions across buckets (blank **Portfolio** → your default; a new
+  name is created automatically). Rows are validated with per-row errors; imported assets get prices +
+  history automatically.
 - **On-device updates** — prices refresh on open, while open, and (optionally) in the background;
   US via Finnhub, Indian NAVs via mfapi.in, USD/INR via open.er-api.com. All stored in on-device SQLite.
 - **Performance graph** pinned at the top with **1D / 1W / 1M / 3M / 1Y / ALL** range toggles.
 
-## Architecture (Stage 2)
+## Architecture (Stage 3)
 
 ```
 mobile/  (Expo / React Native + TypeScript) — fully self-contained
-  app/            expo-router screens: Portfolio, add-asset, trade, asset/[key], transaction/[id], settings
-  components/     PortfolioChart (react-native-svg), HoldingRow, TransactionRow, DateField, TransactionForm, ...
-  db/             expo-sqlite storage: transactions, assets, price_latest, price_history, fx_rates, settings
-  services/       providers (finnhub, indiaMf, fx), prices (refresh), portfolio (holdings/history math),
+  app/            expo-router screens: index (dashboard), portfolio/[id], portfolio-edit,
+                  add-asset, trade, asset/[key], transaction/[id], settings
+  components/     PortfolioChart (react-native-svg), IndexCard, PortfolioRow, ChangeText (▲/▼),
+                  HoldingRow, TransactionRow, SegmentedToggle, DateField, TransactionForm, ...
+  db/             expo-sqlite storage: portfolios, transactions (portfolio_id), assets,
+                  price_latest, price_history, fx_rates, settings
+  services/       providers (finnhub, indiaMf, fx, indices=Yahoo), prices (refresh),
+                  portfolio (per-portfolio holdings/history + listPortfoliosWithValue),
                   lots (pure math, unit-tested), background (expo-background-task),
                   importTransactions (Excel/CSV via expo-document-picker + xlsx)
-  hooks/          React Query hooks over SQLite + refresh triggers
+  hooks/          React Query hooks over SQLite + refresh triggers (portfolios, indices, ...)
 ```
 
-Holdings are **derived from transactions** (average-cost). There is **no server**: the app fetches
-prices directly and stores everything on-device. Packaged to an installable **APK** — built locally
+Holdings are **derived from transactions** (average-cost) **per portfolio** (transactions filtered by
+`portfolio_id`). Prices/assets/FX caches stay global (shared across buckets). There is **no server**:
+the app fetches prices directly and stores everything on-device. Packaged to an installable **APK** — built locally
 with Android Studio's toolchain (recommended, `windows-build-apk-local.bat`) or via **EAS Build**
 (`eas.json`). See **[BUILD-APK-WINDOWS.md](BUILD-APK-WINDOWS.md)**.
 
@@ -61,13 +81,14 @@ with Android Studio's toolchain (recommended, `windows-build-apk-local.bat`) or 
 | US equities / ETFs | [Finnhub](https://finnhub.io) | Free tier; searches by symbol **and** name. Key embedded in `app.json` `extra.finnhubApiKey` (personal free key; rotate at finnhub.io). |
 | Indian mutual fund NAVs | [mfapi.in](https://www.mfapi.in) | Keyless; search by name, latest + full historical NAV. |
 | USD/INR FX | [open.er-api.com](https://open.er-api.com) | Keyless daily rates. |
+| Market indices (S&P 500, Nasdaq, Dow, Sensex, Nifty 50) | Yahoo Finance chart API | Keyless, unofficial; dashboard cards only, not stored. A card shows “Unavailable” if Yahoo hiccups. |
 
 ## Develop / verify the mobile app
 ```bash
 cd mobile
 npm install
 npm run typecheck    # tsc --noEmit
-npm test             # offline lot/currency math test
+npm test             # offline lot/currency math + number-formatting tests
 npx expo start       # optional: run in Expo Go on the same Wi-Fi (dev only)
 npx expo export --platform android   # full bundle sanity check
 ```

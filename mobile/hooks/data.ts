@@ -8,13 +8,19 @@ import { useEffect } from "react";
 import { AppState } from "react-native";
 
 import {
+  createPortfolio as dbCreatePortfolio,
+  defaultPortfolioId,
   deleteAsset as dbDeleteAsset,
+  deletePortfolio as dbDeletePortfolio,
   deleteTransaction as dbDeleteTransaction,
+  getPortfolioById,
   getTransaction,
   insertTransaction,
   insertTransactionsBulk,
+  listPortfolios,
   listTransactions,
   listTransactionsByAsset,
+  renamePortfolio as dbRenamePortfolio,
   updateTransaction as dbUpdateTransaction,
 } from "@/db";
 import type {
@@ -23,40 +29,115 @@ import type {
   Transaction,
   TransactionInput,
 } from "@/db/types";
-import { getHistory, getPortfolio, reduceLots } from "@/services/portfolio";
+import {
+  getHistory,
+  getPortfolio,
+  listPortfoliosWithValue,
+  reduceLots,
+} from "@/services/portfolio";
 import { pickAndParseTransactions } from "@/services/importTransactions";
 import { refreshAll, refreshNewAsset } from "@/services/prices";
 import { search as providerSearch } from "@/services/providers";
+import { getIndices, type Market as IndexMarket } from "@/services/providers/indices";
 
 const FOREGROUND_REFRESH_MS = 15 * 60 * 1000; // 15 min while app is open
 
 function invalidateAll(qc: ReturnType<typeof useQueryClient>) {
   qc.invalidateQueries({ queryKey: ["portfolio"] });
+  qc.invalidateQueries({ queryKey: ["portfolios"] });
   qc.invalidateQueries({ queryKey: ["history"] });
   qc.invalidateQueries({ queryKey: ["transactions"] });
   qc.invalidateQueries({ queryKey: ["asset"] });
 }
 
-export function usePortfolio() {
-  return useQuery({ queryKey: ["portfolio"], queryFn: getPortfolio });
+/** Every portfolio with its current USD value + daily change (dashboard). */
+export function usePortfolios() {
+  return useQuery({ queryKey: ["portfolios"], queryFn: listPortfoliosWithValue });
 }
 
-export function useHistory(range: RangeKey) {
-  return useQuery({ queryKey: ["history", range], queryFn: () => getHistory(range) });
-}
-
-export function useTransactions() {
-  return useQuery({ queryKey: ["transactions"], queryFn: listTransactions });
-}
-
-export function useAssetDetail(assetType: AssetType, key: string) {
+/** One portfolio's row record (name etc.). */
+export function usePortfolioMeta(portfolioId: number) {
   return useQuery({
-    queryKey: ["asset", assetType, key],
+    queryKey: ["portfolio-meta", portfolioId],
+    queryFn: () => getPortfolioById(portfolioId),
+    enabled: Number.isFinite(portfolioId),
+  });
+}
+
+export function useCreatePortfolio() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (name: string) => dbCreatePortfolio(name),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["portfolios"] }),
+  });
+}
+
+export function useRenamePortfolio() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (args: { id: number; name: string }) => dbRenamePortfolio(args.id, args.name),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["portfolios"] });
+      qc.invalidateQueries({ queryKey: ["portfolio-meta"] });
+    },
+  });
+}
+
+export function useDeletePortfolio() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: number) => dbDeletePortfolio(id),
+    onSuccess: () => invalidateAll(qc),
+  });
+}
+
+/** Live market indices for a market ("us" | "in"). Ephemeral (Yahoo). */
+export function useIndices(market: IndexMarket) {
+  return useQuery({
+    queryKey: ["indices", market],
+    queryFn: () => getIndices(market),
+    refetchInterval: 5 * 60 * 1000, // refresh while foregrounded
+    staleTime: 60 * 1000,
+  });
+}
+
+export function usePortfolio(portfolioId: number) {
+  return useQuery({
+    queryKey: ["portfolio", portfolioId],
+    queryFn: () => getPortfolio(portfolioId),
+    enabled: Number.isFinite(portfolioId),
+  });
+}
+
+export function useHistory(portfolioId: number, range: RangeKey) {
+  return useQuery({
+    queryKey: ["history", portfolioId, range],
+    queryFn: () => getHistory(portfolioId, range),
+    enabled: Number.isFinite(portfolioId),
+  });
+}
+
+export function useTransactions(portfolioId?: number) {
+  return useQuery({
+    queryKey: ["transactions", portfolioId ?? "all"],
     queryFn: async () => {
-      const txns = await listTransactionsByAsset(assetType, key);
+      const all = await listTransactions();
+      return portfolioId === undefined
+        ? all
+        : all.filter((t) => t.portfolio_id === portfolioId);
+    },
+  });
+}
+
+export function useAssetDetail(portfolioId: number, assetType: AssetType, key: string) {
+  return useQuery({
+    queryKey: ["asset", portfolioId, assetType, key],
+    queryFn: async () => {
+      const txns = await listTransactionsByAsset(portfolioId, assetType, key);
       const { qty, costBasis } = reduceLots(txns);
       return { txns, qty, costBasis };
     },
+    enabled: Number.isFinite(portfolioId),
   });
 }
 
@@ -107,8 +188,8 @@ export function useDeleteTransaction() {
 export function useDeleteAsset() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (args: { assetType: AssetType; key: string }) =>
-      dbDeleteAsset(args.assetType, args.key),
+    mutationFn: (args: { portfolioId: number; assetType: AssetType; key: string }) =>
+      dbDeleteAsset(args.portfolioId, args.assetType, args.key),
     onSuccess: () => invalidateAll(qc),
   });
 }
@@ -133,8 +214,35 @@ export function useImportTransactions() {
       }
       let inserted = 0;
       if (parsed.toInsert.length > 0) {
-        const res = await insertTransactionsBulk(parsed.toInsert);
+        // Resolve each row's portfolio name to an id, creating buckets on demand.
+        // Blank names fall back to the default portfolio. Matching is case-insensitive.
+        const existing = await listPortfolios();
+        const byName = new Map<string, number>();
+        for (const pf of existing) byName.set(pf.name.trim().toLowerCase(), pf.id);
+        const fallbackId = await defaultPortfolioId();
+
+        const rows: TransactionInput[] = [];
+        for (const r of parsed.toInsert) {
+          const { portfolioName, ...tx } = r;
+          let pid: number;
+          if (!portfolioName) {
+            pid = fallbackId;
+          } else {
+            const norm = portfolioName.toLowerCase();
+            const found = byName.get(norm);
+            if (found !== undefined) {
+              pid = found;
+            } else {
+              pid = await dbCreatePortfolio(portfolioName);
+              byName.set(norm, pid);
+            }
+          }
+          rows.push({ ...tx, portfolio_id: pid });
+        }
+
+        const res = await insertTransactionsBulk(rows);
         inserted = res.inserted;
+        qc.invalidateQueries({ queryKey: ["portfolios"] });
         // Fetch prices/history in the background; don't fail the import if the
         // network is unavailable.
         Promise.allSettled(res.assets.map((a) => refreshNewAsset(a)))

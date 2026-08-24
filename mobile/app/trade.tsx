@@ -17,6 +17,7 @@ export default function TradeScreen() {
     currency: string;
     action: string;
     maxQty?: string;
+    portfolioId?: string;
   }>();
 
   const action = (params.action === "sell" ? "sell" : "buy") as TxAction;
@@ -45,6 +46,7 @@ export default function TradeScreen() {
           setError(null);
           addTx.mutate(
             {
+              portfolio_id: Number(params.portfolioId),
               asset_type: params.assetType as AssetType,
               key: params.key,
               name: params.name,

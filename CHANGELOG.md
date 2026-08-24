@@ -2,6 +2,33 @@
 
 A running log of the Portfolio Tracker project. Newest first.
 
+## Stage 3 — Dashboard UI/UX + multiple portfolios + market indices ✅
+Reworked the app into a **dashboard-first** experience and split holdings into named portfolios.
+
+**Dashboard (new home)**
+- Header **“Yusuf's Portfolio Tracker”** with a settings **gear** top-right.
+- **USA / India** segmented toggle driving a horizontal row of live **index cards** — S&P 500, Nasdaq,
+  Dow Jones (USA) and Sensex, Nifty 50 (India) — each showing level, a colored daily-change ▲/▼, and a
+  mini `react-native-svg` sparkline. Data via the free/keyless **Yahoo Finance** chart API
+  (`services/providers/indices.ts`); ephemeral (not stored). A card shows “Unavailable” if Yahoo hiccups.
+- **Portfolios** section with a **+** to create one; each row shows the portfolio’s **USD value (0 dp)**
+  and **daily change %** with a green (▲) / red (▼) arrow. Tap a row to open that portfolio.
+
+**Multiple portfolios (buckets)**
+- New `portfolios` table + `transactions.portfolio_id` (one-time SQLite migration that also creates a
+  default **“My Portfolio”** and moves any existing transactions into it). Holdings are computed
+  **per portfolio**; prices/assets/FX caches stay global.
+- Create / rename / delete portfolios (`app/portfolio-edit.tsx`); deleting a portfolio removes its
+  transactions (with confirm). Per-portfolio detail screen (`app/portfolio/[id].tsx`) keeps the Stage-2
+  graph + RangeToggle + Holdings/Transactions toggle + add/trade, scoped to the bucket.
+- **Import** gains a leading **Portfolio** column (blank → default; unknown name → created automatically),
+  so one spreadsheet can populate multiple buckets.
+
+**Formatting**
+- New `formatUsd0` (whole-dollar USD) for portfolio values; new **`ChangeText`** component (▲/▼ + signed
+  % to 2 decimals, green ≥ 0 / red < 0) reused by index cards, portfolio rows, and holding rows.
+- Verified: `tsc` clean, `npm test` (lot math **+** new formatting tests), and `expo export` all pass.
+
 ## Stage 2.3 — Import template download
 - Settings now has a **“Download template”** button that generates a ready-to-fill `.xlsx`
   (headers + example rows) and opens the share sheet to save it anywhere on the phone — no need to
@@ -57,9 +84,6 @@ transaction tracking, and got it building and running on a real phone.
 - Expo/React Native client polling the backend; performance graph with range toggles.
 - Non-technical Windows onboarding: `windows-setup.bat` + start scripts + `GETTING-STARTED-WINDOWS.md`.
 - Kept for reference only; the Stage 2 app does not use the backend.
-
-## Next — Stage 3 (planned)
-Refine the build and UI. (To be detailed when Stage 3 starts.)
 
 ---
 _Setup/build instructions: see [BUILD-APK-WINDOWS.md](BUILD-APK-WINDOWS.md) and [README.md](README.md)._

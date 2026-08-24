@@ -29,6 +29,15 @@ export function formatCurrency(value: number | null | undefined, ccy: string): s
   })}`;
 }
 
+/** USD value with no decimal places, e.g. "$117,049". */
+export function formatUsd0(value: number | null | undefined): string {
+  if (value === null || value === undefined || !Number.isFinite(value)) return "—";
+  return `$${Math.round(value).toLocaleString(undefined, {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  })}`;
+}
+
 export function formatPct(value: number | null | undefined): string {
   if (value === null || value === undefined) return "—";
   const sign = value >= 0 ? "+" : "";
