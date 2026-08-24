@@ -1,0 +1,272 @@
+{
+  "meta": {
+    "total": 0,
+    "grid": "24x24",
+    "stroke": 1.5,
+    "colorSource": "currentColor (bound to useColors().text)",
+    "exceptionColors": {
+      "positive": [
+        "trade.buy",
+        "trend.up"
+      ],
+      "negative": [
+        "trade.sell",
+        "trend.down",
+        "delete"
+      ]
+    }
+  },
+  "emojiReplacements": {
+    "📅": "calendar",
+    "🗑": "delete"
+  },
+  "placements": {
+    "chevron.back": {
+      "usage": "back button in stack header",
+      "files": [
+        "mobile/app/asset/[key].tsx",
+        "mobile/app/transaction/[id].tsx",
+        "mobile/app/portfolio/[id].tsx",
+        "mobile/app/portfolio-edit.tsx",
+        "mobile/app/add-asset.tsx",
+        "mobile/app/trade.tsx"
+      ]
+    },
+    "chevron.forward": {
+      "usage": "row disclosure indicator",
+      "files": [
+        "mobile/components/HoldingRow.tsx",
+        "mobile/components/PortfolioRow.tsx",
+        "mobile/components/TransactionRow.tsx"
+      ]
+    },
+    "chevron.up": {
+      "usage": "sort ascending",
+      "files": [
+        "mobile/components/HoldingsSort.tsx"
+      ]
+    },
+    "chevron.down": {
+      "usage": "sort descending / expand",
+      "files": [
+        "mobile/components/HoldingsSort.tsx"
+      ]
+    },
+    "close": {
+      "usage": "modal / cancel affordance",
+      "files": [
+        "mobile/components/TransactionForm.tsx"
+      ]
+    },
+    "menu": {
+      "usage": "any list/menu opener",
+      "files": []
+    },
+    "search": {
+      "usage": "search field prefix icon",
+      "files": [
+        "mobile/app/add-asset.tsx"
+      ]
+    },
+    "app.lock": {
+      "usage": "AppLockGate primary glyph",
+      "files": [
+        "mobile/components/AppLockGate.tsx"
+      ]
+    },
+    "asset.add": {
+      "usage": "+ Add on Portfolio screen",
+      "files": [
+        "mobile/app/index.tsx",
+        "mobile/app/add-asset.tsx"
+      ]
+    },
+    "trade.buy": {
+      "usage": "Buy segment/CTA",
+      "files": [
+        "mobile/components/TransactionForm.tsx",
+        "mobile/app/trade.tsx"
+      ]
+    },
+    "trade.sell": {
+      "usage": "Sell segment/CTA",
+      "files": [
+        "mobile/components/TransactionForm.tsx",
+        "mobile/app/trade.tsx"
+      ]
+    },
+    "transactions": {
+      "usage": "Transactions segmented tab",
+      "files": [
+        "mobile/components/SegmentedToggle.tsx",
+        "mobile/app/index.tsx"
+      ]
+    },
+    "holdings": {
+      "usage": "Holdings segmented tab",
+      "files": [
+        "mobile/components/SegmentedToggle.tsx",
+        "mobile/app/index.tsx"
+      ]
+    },
+    "chart.bar": {
+      "usage": "supplementary chart affordance",
+      "files": [
+        "mobile/components/IndexCard.tsx"
+      ]
+    },
+    "chart.line": {
+      "usage": "PortfolioChart header",
+      "files": [
+        "mobile/components/PortfolioChart.tsx"
+      ]
+    },
+    "allocation": {
+      "usage": "allocation breakdown block",
+      "files": [
+        "mobile/app/portfolio/[id].tsx"
+      ]
+    },
+    "currency.usd": {
+      "usage": "USD label glyph",
+      "files": [
+        "mobile/theme.ts (formatCurrency call sites)"
+      ]
+    },
+    "currency.inr": {
+      "usage": "INR label glyph",
+      "files": [
+        "mobile/theme.ts (formatCurrency call sites)"
+      ]
+    },
+    "trend.up": {
+      "usage": "positive daily change badge",
+      "files": [
+        "mobile/components/ChangeText.tsx"
+      ]
+    },
+    "trend.down": {
+      "usage": "negative daily change badge",
+      "files": [
+        "mobile/components/ChangeText.tsx"
+      ]
+    },
+    "fx.convert": {
+      "usage": "FX conversion note",
+      "files": [
+        "mobile/services/providers/fx.ts (UI callers)"
+      ]
+    },
+    "card": {
+      "usage": "payment/account row",
+      "files": []
+    },
+    "wallet": {
+      "usage": "portfolio wallet header",
+      "files": [
+        "mobile/app/portfolio/[id].tsx"
+      ]
+    },
+    "statement": {
+      "usage": "importTransactions entry",
+      "files": [
+        "mobile/services/importTransactions.ts (UI caller)",
+        "mobile/app/settings.tsx"
+      ]
+    },
+    "calendar": {
+      "usage": "DateField prefix — replaces 📅",
+      "files": [
+        "mobile/components/DateField.tsx"
+      ]
+    },
+    "calendar.today": {
+      "usage": "'Today' quick-pick chip",
+      "files": [
+        "mobile/components/DateField.tsx",
+        "mobile/components/TransactionForm.tsx"
+      ]
+    },
+    "clock": {
+      "usage": "last-refreshed hint",
+      "files": [
+        "mobile/services/prices.ts (UI callers)"
+      ]
+    },
+    "refresh": {
+      "usage": "pull-to-refresh / manual sync",
+      "files": [
+        "mobile/app/index.tsx"
+      ]
+    },
+    "sync": {
+      "usage": "background sync indicator",
+      "files": [
+        "mobile/services/background.ts (UI callers)"
+      ]
+    },
+    "live": {
+      "usage": "live price indicator",
+      "files": [
+        "mobile/components/PortfolioChart.tsx"
+      ]
+    },
+    "secure": {
+      "usage": "app-lock success state",
+      "files": [
+        "mobile/components/AppLockGate.tsx"
+      ]
+    },
+    "appearance": {
+      "usage": "theme setting row",
+      "files": [
+        "mobile/app/settings.tsx"
+      ]
+    },
+    "edit": {
+      "usage": "portfolio-edit / row edit",
+      "files": [
+        "mobile/app/portfolio-edit.tsx"
+      ]
+    },
+    "delete": {
+      "usage": "transaction delete — replaces 🗑",
+      "files": [
+        "mobile/components/TransactionRow.tsx",
+        "mobile/components/confirmDeleteTransaction.ts (UI caller)"
+      ]
+    },
+    "sort": {
+      "usage": "HoldingsSort trigger",
+      "files": [
+        "mobile/components/HoldingsSort.tsx"
+      ]
+    },
+    "filter": {
+      "usage": "any filter menu opener",
+      "files": []
+    },
+    "controls": {
+      "usage": "settings toggles group",
+      "files": [
+        "mobile/app/settings.tsx"
+      ]
+    },
+    "more": {
+      "usage": "row overflow menu",
+      "files": [
+        "mobile/components/TransactionRow.tsx"
+      ]
+    },
+    "check": {
+      "usage": "confirmation state",
+      "files": [
+        "mobile/components/TransactionForm.tsx"
+      ]
+    },
+    "watchlist": {
+      "usage": "future — favourited asset",
+      "files": []
+    }
+  }
+}
