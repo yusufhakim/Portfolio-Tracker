@@ -1,15 +1,17 @@
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { KeyboardAvoidingView, Platform, StyleSheet } from "react-native";
 
 import { TransactionForm } from "@/components/TransactionForm";
 import type { AssetType, TxAction } from "@/db/types";
 import { useAddTransaction } from "@/hooks/data";
-import { colors, spacing } from "@/theme";
+import { spacing, useColors, type Palette } from "@/theme";
 
 /** Add another buy or a sell for an existing asset. */
 export default function TradeScreen() {
   const router = useRouter();
+  const colors = useColors();
+  const styles = useMemo(() => makeStyles(colors), [colors]);
   const params = useLocalSearchParams<{
     assetType: string;
     key: string;
@@ -67,6 +69,6 @@ export default function TradeScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: Palette) => StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.bg, padding: spacing.lg },
 });

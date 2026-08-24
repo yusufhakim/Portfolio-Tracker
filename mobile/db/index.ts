@@ -13,15 +13,28 @@ import type {
 
 const DB_NAME = "portfolio.db";
 let _db: SQLite.SQLiteDatabase | null = null;
+let _dbPromise: Promise<SQLite.SQLiteDatabase> | null = null;
 
 export async function getDb(): Promise<SQLite.SQLiteDatabase> {
   if (_db) return _db;
-  _db = await SQLite.openDatabaseAsync(DB_NAME);
-  // WAL for concurrent read/write; busy_timeout so a brief lock waits instead of
-  // throwing "database is locked" (which was failing saves during a background refresh).
-  await _db.execAsync("PRAGMA journal_mode = WAL; PRAGMA busy_timeout = 8000;");
-  await migrate(_db);
-  return _db;
+  // Single-flight: every concurrent caller awaits the SAME open+migrate promise,
+  // so no query can run against a half-initialized DB (which surfaced as a native
+  // "NativeDatabase.prepareAsync ... NullPointerException" on the first write).
+  if (!_dbPromise) {
+    _dbPromise = (async () => {
+      const db = await SQLite.openDatabaseAsync(DB_NAME);
+      // WAL for concurrent read/write; busy_timeout so a brief lock waits instead of
+      // throwing "database is locked" (which was failing saves during a background refresh).
+      await db.execAsync("PRAGMA journal_mode = WAL; PRAGMA busy_timeout = 8000;");
+      await migrate(db);
+      _db = db; // only publish AFTER migration fully completes
+      return db;
+    })().catch((e) => {
+      _dbPromise = null; // let the next call retry a clean open
+      throw e;
+    });
+  }
+  return _dbPromise;
 }
 
 async function migrate(db: SQLite.SQLiteDatabase): Promise<void> {
@@ -164,10 +177,13 @@ export async function defaultPortfolioId(): Promise<number> {
 export async function insertTransaction(tx: TransactionInput): Promise<number> {
   const db = await getDb();
   const created = new Date().toISOString();
+  // Never bind a null/NaN portfolio_id (SQLite can't bind those cleanly) — fall
+  // back to the default bucket so a stray navigation can't wedge the save.
+  const pid = Number.isFinite(tx.portfolio_id) ? tx.portfolio_id : await defaultPortfolioId();
   const res = await db.runAsync(
     `INSERT INTO transactions (portfolio_id, asset_type, key, name, currency, action, qty, price, trade_date, created_at)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-    tx.portfolio_id, tx.asset_type, tx.key, tx.name, tx.currency, tx.action, tx.qty, tx.price, tx.trade_date, created,
+    pid, tx.asset_type, tx.key, tx.name, tx.currency, tx.action, tx.qty, tx.price, tx.trade_date, created,
   );
   // Ensure an asset cache row exists.
   await upsertAsset({
@@ -183,12 +199,14 @@ export async function insertTransactionsBulk(
   if (txns.length === 0) return { inserted: 0, assets: [] };
   const db = await getDb();
   const created = new Date().toISOString();
+  const fallbackPid = await defaultPortfolioId();
   const assetMap = new Map<string, Asset>();
   for (const tx of txns) {
+    const pid = Number.isFinite(tx.portfolio_id) ? tx.portfolio_id : fallbackPid;
     await db.runAsync(
       `INSERT INTO transactions (portfolio_id, asset_type, key, name, currency, action, qty, price, trade_date, created_at)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      tx.portfolio_id, tx.asset_type, tx.key, tx.name, tx.currency, tx.action, tx.qty, tx.price, tx.trade_date, created,
+      pid, tx.asset_type, tx.key, tx.name, tx.currency, tx.action, tx.qty, tx.price, tx.trade_date, created,
     );
     const k = `${tx.asset_type}:${tx.key}`;
     if (!assetMap.has(k)) {

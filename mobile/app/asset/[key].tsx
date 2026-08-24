@@ -1,4 +1,5 @@
 import { useLocalSearchParams, useRouter } from "expo-router";
+import { useMemo } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -15,18 +16,21 @@ import { confirmDeleteTransaction } from "@/components/confirmDeleteTransaction"
 import type { AssetType, Holding } from "@/db/types";
 import { useAssetDetail, useDeleteAsset, useDeleteTransaction, usePortfolio } from "@/hooks/data";
 import {
-  colors,
   formatCurrency,
   formatPct,
   formatQty,
   formatSignedCurrency,
   gainColor,
   spacing,
+  useColors,
+  type Palette,
 } from "@/theme";
 
 export default function AssetDetailScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const colors = useColors();
+  const styles = useMemo(() => makeStyles(colors), [colors]);
   const params = useLocalSearchParams<{
     key: string;
     assetType: string;
@@ -166,15 +170,22 @@ export default function AssetDetailScreen() {
 }
 
 function Row({ label, value, color }: { label: string; value: string; color?: string }) {
+  const colors = useColors();
   return (
-    <View style={styles.kvRow}>
-      <Text style={styles.kvLabel}>{label}</Text>
-      <Text style={[styles.kvValue, color ? { color } : null]}>{value}</Text>
+    <View style={rowStyles.kvRow}>
+      <Text style={[rowStyles.kvLabel, { color: colors.textDim }]}>{label}</Text>
+      <Text style={[rowStyles.kvValue, { color: color ?? colors.text }]}>{value}</Text>
     </View>
   );
 }
 
-const styles = StyleSheet.create({
+const rowStyles = StyleSheet.create({
+  kvRow: { flexDirection: "row", justifyContent: "space-between", paddingVertical: spacing.sm },
+  kvLabel: { fontSize: 14 },
+  kvValue: { fontSize: 14, fontWeight: "600" },
+});
+
+const makeStyles = (colors: Palette) => StyleSheet.create({
   list: { flex: 1, backgroundColor: colors.bg },
   center: { flex: 1, backgroundColor: colors.bg, justifyContent: "center", alignItems: "center" },
   symbol: { color: colors.text, fontSize: 24, fontWeight: "800" },

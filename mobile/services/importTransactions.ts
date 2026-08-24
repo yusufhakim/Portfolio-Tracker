@@ -10,12 +10,16 @@
 //   Date      — dd/mm/yyyy (also accepts a real Excel date cell)
 // (A "Name" column is optional and ignored if present.)
 import * as DocumentPicker from "expo-document-picker";
-import { File, Paths } from "expo-file-system";
-import * as Sharing from "expo-sharing";
+import { File } from "expo-file-system";
+import { StorageAccessFramework as SAF } from "expo-file-system/legacy";
 import * as XLSX from "xlsx";
 
+import { getSetting, setSetting } from "@/db";
 import type { AssetType, TransactionInput, TxAction } from "@/db/types";
 import { displayToIso } from "@/theme";
+
+const XLSX_MIME = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+const SAVE_DIR_KEY = "import_save_dir_uri";
 
 /** A parsed row before its portfolio name is resolved to an id. */
 export type ParsedRow = Omit<TransactionInput, "portfolio_id"> & {
@@ -28,37 +32,63 @@ export const TEMPLATE_COLUMNS = [
 ];
 
 /**
- * Build a ready-to-fill .xlsx template (headers + example rows) and open the
- * share sheet so the user can save it wherever they like on the phone.
+ * Save a folder the user picked (once) for template downloads and remember it so
+ * later downloads don't prompt again. Returns a usable SAF directory URI.
  */
-export async function downloadTemplate(): Promise<void> {
+async function ensureSaveDir(): Promise<string> {
+  const stored = await getSetting(SAVE_DIR_KEY);
+  if (stored) return stored;
+  const perm = await SAF.requestDirectoryPermissionsAsync();
+  if (!perm.granted || !perm.directoryUri) {
+    throw new Error("No folder was chosen. Pick a folder (e.g. Download) to save the template.");
+  }
+  await setSetting(SAVE_DIR_KEY, perm.directoryUri);
+  return perm.directoryUri;
+}
+
+async function writeTemplateTo(dirUri: string, base64: string): Promise<string> {
+  const fileUri = await SAF.createFileAsync(dirUri, "portfolio-import-template", XLSX_MIME);
+  await SAF.writeAsStringAsync(fileUri, base64, { encoding: "base64" });
+  return fileUri;
+}
+
+/**
+ * Build a ready-to-fill .xlsx template (headers + one example row) and save it
+ * straight into a folder on the phone (the user picks the folder — e.g. Download
+ * — the first time only; after that it saves there silently). Returns the folder
+ * name for a confirmation message.
+ */
+export async function downloadTemplate(): Promise<string> {
   const rows: (string | number)[][] = [
     TEMPLATE_COLUMNS,
     ["USA", "US", "AAPL", "Buy", 10, 150, "05/02/2026"],
-    ["India", "India", "119551", "Buy", 100, 42.5, "12/01/2026"],
-    ["USA", "US", "VOO", "Sell", 2, 480, "20/03/2026"],
   ];
   const ws = XLSX.utils.aoa_to_sheet(rows);
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, "Transactions");
-  const data = XLSX.write(wb, { type: "array", bookType: "xlsx" }) as ArrayBuffer;
+  const base64 = XLSX.write(wb, { type: "base64", bookType: "xlsx" }) as string;
 
-  const file = new File(Paths.cache, "portfolio-import-template.xlsx");
+  let dirUri = await ensureSaveDir();
   try {
-    file.create({ overwrite: true });
+    await writeTemplateTo(dirUri, base64);
   } catch {
-    /* already exists */
+    // Stored folder permission may be stale (folder deleted / revoked) — ask once more.
+    await setSetting(SAVE_DIR_KEY, "");
+    dirUri = await ensureSaveDir();
+    await writeTemplateTo(dirUri, base64);
   }
-  file.write(new Uint8Array(data));
+  return prettyDirName(dirUri);
+}
 
-  if (!(await Sharing.isAvailableAsync())) {
-    throw new Error("Saving/sharing isn't available on this device.");
+/** Best-effort human-readable name of the chosen SAF folder (e.g. "Download"). */
+function prettyDirName(dirUri: string): string {
+  try {
+    const decoded = decodeURIComponent(dirUri);
+    const seg = decoded.split(/[/:]/).filter(Boolean).pop() ?? "";
+    return seg || "your chosen folder";
+  } catch {
+    return "your chosen folder";
   }
-  await Sharing.shareAsync(file.uri, {
-    mimeType: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-    dialogTitle: "Save import template",
-    UTI: "org.openxmlformats.spreadsheetml.sheet",
-  });
 }
 
 export interface ImportResult {

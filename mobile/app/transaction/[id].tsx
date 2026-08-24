@@ -1,5 +1,6 @@
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useQuery } from "@tanstack/react-query";
+import { useMemo } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -15,10 +16,12 @@ import {
 import { TransactionForm } from "@/components/TransactionForm";
 import { getTransaction } from "@/db";
 import { useDeleteTransaction, useUpdateTransaction } from "@/hooks/data";
-import { colors, spacing } from "@/theme";
+import { spacing, useColors, type Palette } from "@/theme";
 
 export default function EditTransactionScreen() {
   const router = useRouter();
+  const colors = useColors();
+  const styles = useMemo(() => makeStyles(colors), [colors]);
   const { id } = useLocalSearchParams<{ id: string }>();
   const txId = Number(id);
 
@@ -104,7 +107,7 @@ export default function EditTransactionScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: Palette) => StyleSheet.create({
   flex: { flex: 1, backgroundColor: colors.bg },
   container: { padding: spacing.lg, paddingBottom: spacing.xl * 2 },
   center: { flex: 1, backgroundColor: colors.bg, justifyContent: "center", alignItems: "center" },

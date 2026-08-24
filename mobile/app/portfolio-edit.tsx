@@ -1,5 +1,5 @@
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import {
   Alert,
   KeyboardAvoidingView,
@@ -16,11 +16,13 @@ import {
   useDeletePortfolio,
   useRenamePortfolio,
 } from "@/hooks/data";
-import { colors, spacing } from "@/theme";
+import { spacing, useColors, type Palette } from "@/theme";
 
 /** Create a new portfolio, or rename / delete an existing one. */
 export default function PortfolioEditScreen() {
   const router = useRouter();
+  const colors = useColors();
+  const styles = useMemo(() => makeStyles(colors), [colors]);
   const params = useLocalSearchParams<{ id?: string; name?: string }>();
   const editingId = params.id ? Number(params.id) : null;
   const isEdit = editingId !== null;
@@ -97,7 +99,7 @@ export default function PortfolioEditScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: Palette) => StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.bg, padding: spacing.lg },
   label: { color: colors.textDim, fontSize: 13, marginBottom: spacing.sm },
   input: {

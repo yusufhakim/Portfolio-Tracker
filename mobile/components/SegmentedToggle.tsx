@@ -1,6 +1,7 @@
+import { useMemo } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
-import { colors, spacing } from "@/theme";
+import { spacing, useColors, type Palette } from "@/theme";
 
 interface Props<T extends string> {
   options: { value: T; label: string }[];
@@ -9,6 +10,8 @@ interface Props<T extends string> {
 }
 
 export function SegmentedToggle<T extends string>({ options, value, onChange }: Props<T>) {
+  const colors = useColors();
+  const styles = useMemo(() => makeStyles(colors), [colors]);
   return (
     <View style={styles.row}>
       {options.map((o) => {
@@ -27,7 +30,7 @@ export function SegmentedToggle<T extends string>({ options, value, onChange }: 
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: Palette) => StyleSheet.create({
   row: {
     flexDirection: "row",
     backgroundColor: colors.surface,

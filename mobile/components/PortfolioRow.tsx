@@ -1,8 +1,9 @@
+import { useMemo } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
 import { ChangeText } from "@/components/ChangeText";
 import type { PortfolioWithValue } from "@/db/types";
-import { colors, formatUsd0, spacing } from "@/theme";
+import { formatUsd0, spacing, useColors, type Palette } from "@/theme";
 
 interface Props {
   portfolio: PortfolioWithValue;
@@ -10,6 +11,8 @@ interface Props {
 }
 
 export function PortfolioRow({ portfolio: p, onPress }: Props) {
+  const colors = useColors();
+  const styles = useMemo(() => makeStyles(colors), [colors]);
   return (
     <Pressable style={styles.row} onPress={() => onPress(p)}>
       <View style={styles.left}>
@@ -26,7 +29,7 @@ export function PortfolioRow({ portfolio: p, onPress }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: Palette) => StyleSheet.create({
   row: {
     flexDirection: "row",
     justifyContent: "space-between",

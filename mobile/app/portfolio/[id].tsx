@@ -1,5 +1,5 @@
 import { Link, Stack, useLocalSearchParams, useRouter } from "expo-router";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
@@ -27,13 +27,14 @@ import {
   useTransactions,
 } from "@/hooks/data";
 import {
-  colors,
   formatCurrency,
   formatPct,
   formatSignedCurrency,
   formatUsd0,
   gainColor,
   spacing,
+  useColors,
+  type Palette,
 } from "@/theme";
 
 type Tab = "holdings" | "transactions";
@@ -41,6 +42,8 @@ type Tab = "holdings" | "transactions";
 export default function PortfolioDetailScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const colors = useColors();
+  const styles = useMemo(() => makeStyles(colors), [colors]);
   const { id } = useLocalSearchParams<{ id: string }>();
   const portfolioId = Number(id);
 
@@ -192,7 +195,7 @@ export default function PortfolioDetailScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: Palette) => StyleSheet.create({
   list: { flex: 1, backgroundColor: colors.bg },
   center: { flex: 1, backgroundColor: colors.bg, justifyContent: "center", alignItems: "center" },
   editLink: { color: colors.accent, fontSize: 15, fontWeight: "600" },

@@ -25,6 +25,7 @@ const INDICES: Record<Market, IndexDef[]> = {
   in: [
     { symbol: "^BSESN", name: "Sensex" },
     { symbol: "^NSEI", name: "Nifty 50" },
+    { symbol: "^NSMIDCP", name: "Nifty Next 50" },
   ],
 };
 

@@ -1,14 +1,16 @@
+import { useMemo } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
 import { ChangeText } from "@/components/ChangeText";
 import type { AssetType, Holding } from "@/db/types";
 import {
-  colors,
   formatCurrency,
   formatQty,
   formatSignedCurrency,
   gainColor,
   spacing,
+  useColors,
+  type Palette,
 } from "@/theme";
 
 const TYPE_LABEL: Record<AssetType, string> = {
@@ -23,6 +25,8 @@ interface Props {
 }
 
 export function HoldingRow({ holding: h, onPress }: Props) {
+  const colors = useColors();
+  const styles = useMemo(() => makeStyles(colors), [colors]);
   const ccy = h.currency;
   return (
     <Pressable style={styles.row} onPress={() => onPress(h)}>
@@ -56,7 +60,7 @@ export function HoldingRow({ holding: h, onPress }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: Palette) => StyleSheet.create({
   row: {
     flexDirection: "row",
     justifyContent: "space-between",

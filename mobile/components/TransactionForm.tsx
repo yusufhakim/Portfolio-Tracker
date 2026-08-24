@@ -1,8 +1,8 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 
 import type { TxAction } from "@/db/types";
-import { colors, spacing, todayIso } from "@/theme";
+import { spacing, todayIso, useColors, type Palette } from "@/theme";
 
 import { DateField } from "./DateField";
 
@@ -41,6 +41,8 @@ export function TransactionForm({
   fixedAction = "buy",
   maxQtyHint,
 }: Props) {
+  const colors = useColors();
+  const styles = useMemo(() => makeStyles(colors), [colors]);
   const [action, setAction] = useState<TxAction>(initial?.action ?? fixedAction);
   const [qty, setQty] = useState(initial?.qty !== undefined ? String(initial.qty) : "");
   const [price, setPrice] = useState(initial?.price !== undefined ? String(initial.price) : "");
@@ -120,7 +122,7 @@ export function TransactionForm({
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: Palette) => StyleSheet.create({
   assetLabel: { color: colors.text, fontSize: 16, fontWeight: "700", marginBottom: spacing.md },
   actionRow: { flexDirection: "row", marginBottom: spacing.sm },
   actionChip: {

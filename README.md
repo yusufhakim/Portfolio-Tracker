@@ -43,11 +43,14 @@ graph you can toggle across time ranges.
 - **Buy more / sell / edit / delete** — add lots, sell holdings, tap a transaction to edit it, or tap
   the **🗑** on any transaction row to delete a single transaction (delete an entire holding from its
   detail screen).
-- **Import from Excel / CSV** — Settings → “Download template” saves a ready-made `.xlsx`
-  (columns **Portfolio · Market · Symbol · Action · Quantity · Price · Date**); fill it and “Choose file
-  & import” to bulk-add buy/sell transactions across buckets (blank **Portfolio** → your default; a new
-  name is created automatically). Rows are validated with per-row errors; imported assets get prices +
-  history automatically.
+- **Appearance** — Settings → **System default / Light / Dark** theme; the choice is saved on-device
+  and “System default” follows the phone's light/dark setting.
+- **Import from Excel / CSV** — Settings → “Download template” writes a ready-made `.xlsx` (headers +
+  one example, columns **Portfolio · Market · Symbol · Action · Quantity · Price · Date**) straight
+  into a folder on the phone (you pick the folder — e.g. *Download* — the first time only). Fill it and
+  “Choose file & import” to bulk-add buy/sell transactions across buckets (blank **Portfolio** → your
+  default; a new name is created automatically). Rows are validated with per-row errors; imported
+  assets get prices + history automatically.
 - **On-device updates** — prices refresh on open, while open, and (optionally) in the background;
   US via Finnhub, Indian NAVs via mfapi.in, USD/INR via open.er-api.com. All stored in on-device SQLite.
 - **Performance graph** pinned at the top with **1D / 1W / 1M / 3M / 1Y / ALL** range toggles.
@@ -81,7 +84,7 @@ with Android Studio's toolchain (recommended, `windows-build-apk-local.bat`) or 
 | US equities / ETFs | [Finnhub](https://finnhub.io) | Free tier; searches by symbol **and** name. Key embedded in `app.json` `extra.finnhubApiKey` (personal free key; rotate at finnhub.io). |
 | Indian mutual fund NAVs | [mfapi.in](https://www.mfapi.in) | Keyless; search by name, latest + full historical NAV. |
 | USD/INR FX | [open.er-api.com](https://open.er-api.com) | Keyless daily rates. |
-| Market indices (S&P 500, Nasdaq, Dow, Sensex, Nifty 50) | Yahoo Finance chart API | Keyless, unofficial; dashboard cards only, not stored. A card shows “Unavailable” if Yahoo hiccups. |
+| Market indices (S&P 500, Nasdaq, Dow / Sensex, Nifty 50, Nifty Next 50) | Yahoo Finance chart API | Keyless, unofficial; dashboard cards only, not stored. A card shows “Unavailable” if Yahoo hiccups. |
 
 ## Develop / verify the mobile app
 ```bash

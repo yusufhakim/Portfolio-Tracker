@@ -1,4 +1,20 @@
-export const colors = {
+import { createContext, useContext } from "react";
+
+export interface Palette {
+  bg: string;
+  surface: string;
+  surfaceAlt: string;
+  border: string;
+  text: string;
+  textDim: string;
+  accent: string;
+  positive: string;
+  negative: string;
+  chip: string;
+  chipActive: string;
+}
+
+export const darkColors: Palette = {
   bg: "#0B0E14",
   surface: "#151A23",
   surfaceAlt: "#1E2530",
@@ -11,6 +27,49 @@ export const colors = {
   chip: "#1E2530",
   chipActive: "#4C8DFF",
 };
+
+export const lightColors: Palette = {
+  bg: "#F4F6FA",
+  surface: "#FFFFFF",
+  surfaceAlt: "#E8ECF2",
+  border: "#D5DCE6",
+  text: "#0B0E14",
+  textDim: "#5B6472",
+  accent: "#2F6FED",
+  positive: "#12A150",
+  negative: "#E5484D",
+  chip: "#E8ECF2",
+  chipActive: "#2F6FED",
+};
+
+/** Fallback palette for pure helpers and the context default (dark = the original look). */
+export const colors: Palette = darkColors;
+
+export type ThemeMode = "light" | "dark" | "system";
+
+export interface ThemeValue {
+  colors: Palette;
+  isDark: boolean;
+  mode: ThemeMode;
+  setMode: (m: ThemeMode) => void;
+}
+
+export const ThemeContext = createContext<ThemeValue>({
+  colors: darkColors,
+  isDark: true,
+  mode: "system",
+  setMode: () => {},
+});
+
+/** The active palette for the current theme. */
+export function useColors(): Palette {
+  return useContext(ThemeContext).colors;
+}
+
+/** The full theme value (palette + mode controls). */
+export function useTheme(): ThemeValue {
+  return useContext(ThemeContext);
+}
 
 export const spacing = {
   xs: 4,

@@ -2,6 +2,29 @@
 
 A running log of the Portfolio Tracker project. Newest first.
 
+## Stage 3.1 — Dashboard bug fixes + theme + polish
+**Fixes**
+- **Fix “Could not save … NativeDatabase.prepareAsync … NullPointerException” when adding a holding
+  (esp. Indian mutual funds).** Root cause: `getDb()` cached its handle *before* the one-time
+  migration finished, so a concurrent query on app-start could hit a half-initialized database. Made DB
+  open + migrate **single-flight** (every caller awaits the same promise; the handle is only published
+  after migration completes), and added a defensive fallback so a transaction can never be written with
+  a missing `portfolio_id`.
+- **Fix the Background-updates toggle being stuck.** It was blocked by the same DB write failure, and a
+  thrown error left the switch disabled; the toggle is now wrapped so it always re-enables and surfaces
+  any error.
+
+**Enhancements**
+- **Theme selector** in Settings → **System default / Light / Dark**. A new light palette + theme
+  context repaint the whole app at runtime; the choice is saved on-device and “System default” follows
+  the phone's light/dark setting.
+- **Smaller index cards** that fit **3 across without side-scrolling**, and a **third India card —
+  Nifty Next 50** (`^NSMIDCP`) alongside Sensex and Nifty 50.
+- **Import template**: now just **headers + one example row**, and it **saves straight into a folder on
+  the phone** (you pick a folder like *Download* the first time; after that it saves there silently) —
+  no more share sheet each time.
+- Verified: `tsc` clean, `npm test`, and `expo export` all pass.
+
 ## Stage 3 — Dashboard UI/UX + multiple portfolios + market indices ✅
 Reworked the app into a **dashboard-first** experience and split holdings into named portfolios.
 

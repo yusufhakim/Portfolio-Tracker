@@ -1,11 +1,10 @@
 import { Link, useRouter } from "expo-router";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
   Pressable,
   RefreshControl,
-  ScrollView,
   StyleSheet,
   Text,
   View,
@@ -22,7 +21,7 @@ import {
   useManualRefresh,
   usePortfolios,
 } from "@/hooks/data";
-import { colors, spacing } from "@/theme";
+import { spacing, useColors, type Palette } from "@/theme";
 
 type Market = "us" | "in";
 
@@ -30,6 +29,8 @@ export default function DashboardScreen() {
   useAutoRefresh();
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const colors = useColors();
+  const styles = useMemo(() => makeStyles(colors), [colors]);
   const [market, setMarket] = useState<Market>("us");
 
   const indices = useIndices(market);
@@ -60,15 +61,11 @@ export default function DashboardScreen() {
         {indices.isLoading ? (
           <ActivityIndicator color={colors.accent} style={{ marginVertical: spacing.lg }} />
         ) : (
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.indexRow}
-          >
+          <View style={styles.indexRow}>
             {(indices.data ?? []).map((q) => (
               <IndexCard key={q.symbol} quote={q} />
             ))}
-          </ScrollView>
+          </View>
         )}
       </View>
 
@@ -125,7 +122,7 @@ export default function DashboardScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: Palette) => StyleSheet.create({
   list: { flex: 1, backgroundColor: colors.bg },
   topBar: {
     flexDirection: "row",
@@ -136,7 +133,12 @@ const styles = StyleSheet.create({
   appName: { color: colors.text, fontSize: 22, fontWeight: "800", flex: 1, marginRight: spacing.md },
   gear: { color: colors.textDim, fontSize: 22 },
   indexBlock: { minHeight: 60, marginTop: spacing.md },
-  indexRow: { paddingVertical: spacing.sm },
+  indexRow: {
+    flexDirection: "row",
+    alignItems: "stretch",
+    marginHorizontal: -3, // cancel the cards' outer margin so the row aligns flush
+    paddingVertical: spacing.sm,
+  },
   sectionHeader: {
     flexDirection: "row",
     alignItems: "center",

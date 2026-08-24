@@ -1,14 +1,18 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Alert, Pressable, ScrollView, StyleSheet, Switch, Text, View } from "react-native";
 
+import { SegmentedToggle } from "@/components/SegmentedToggle";
 import { isBackgroundEnabled, setBackgroundEnabled } from "@/services/background";
 import { downloadTemplate } from "@/services/importTransactions";
 import { useImportTransactions, useManualRefresh } from "@/hooks/data";
-import { colors, spacing } from "@/theme";
+import { spacing, useColors, useTheme, type Palette, type ThemeMode } from "@/theme";
 
 export default function SettingsScreen() {
   const qc = useQueryClient();
+  const colors = useColors();
+  const styles = useMemo(() => makeStyles(colors), [colors]);
+  const { mode, setMode } = useTheme();
   const refresh = useManualRefresh();
   const importTx = useImportTransactions();
   const [saving, setSaving] = useState(false);
@@ -17,9 +21,13 @@ export default function SettingsScreen() {
   const getTemplate = async () => {
     setTemplating(true);
     try {
-      await downloadTemplate();
+      const folder = await downloadTemplate();
+      Alert.alert(
+        "Template saved",
+        `Saved “portfolio-import-template.xlsx” to ${folder}. Fill in your rows, then tap “Choose file & import”.`,
+      );
     } catch (e) {
-      Alert.alert("Couldn't create template", e instanceof Error ? e.message : String(e));
+      Alert.alert("Couldn't save template", e instanceof Error ? e.message : String(e));
     } finally {
       setTemplating(false);
     }
@@ -33,9 +41,14 @@ export default function SettingsScreen() {
 
   const toggle = async (next: boolean) => {
     setSaving(true);
-    await setBackgroundEnabled(next);
-    await qc.invalidateQueries({ queryKey: ["bg-enabled"] });
-    setSaving(false);
+    try {
+      await setBackgroundEnabled(next);
+      await qc.invalidateQueries({ queryKey: ["bg-enabled"] });
+    } catch (e) {
+      Alert.alert("Couldn't change setting", e instanceof Error ? e.message : String(e));
+    } finally {
+      setSaving(false); // never leave the switch stuck/disabled
+    }
   };
 
   const runImport = () => {
@@ -60,6 +73,24 @@ export default function SettingsScreen() {
 
   return (
     <ScrollView style={styles.screen} contentContainerStyle={styles.container}>
+      <View style={styles.card}>
+        <Text style={styles.title}>Appearance</Text>
+        <Text style={styles.desc}>
+          Choose the app's theme. “System default” follows your phone's light/dark setting.
+        </Text>
+        <View style={{ marginTop: spacing.md }}>
+          <SegmentedToggle<ThemeMode>
+            options={[
+              { value: "system", label: "System" },
+              { value: "light", label: "Light" },
+              { value: "dark", label: "Dark" },
+            ]}
+            value={mode}
+            onChange={setMode}
+          />
+        </View>
+      </View>
+
       <View style={styles.card}>
         <View style={styles.rowBetween}>
           <View style={{ flex: 1, marginRight: spacing.md }}>
@@ -101,8 +132,9 @@ export default function SettingsScreen() {
           (India)  • Action: Buy or Sell  • Price: in the asset's own currency  • Date: dd/mm/yyyy
         </Text>
         <Text style={styles.desc}>
-          Step 1: tap “Download template” and save it to your phone. Fill in your rows, then Step 2:
-          tap “Choose file & import”.
+          Step 1: tap “Download template”. The first time, pick a folder to save into (choose
+          <Text style={{ fontWeight: "700" }}> Download</Text> so it's easy to find) — after that it
+          saves there automatically. Fill in your rows, then Step 2: tap “Choose file & import”.
         </Text>
         <Pressable
           style={[styles.templateBtn, templating && styles.importBtnDisabled]}
@@ -133,7 +165,7 @@ export default function SettingsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: Palette) => StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.bg },
   container: { padding: spacing.lg, paddingBottom: spacing.xl * 2 },
   card: {

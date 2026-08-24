@@ -1,7 +1,8 @@
+import { useMemo } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
 import type { Transaction } from "@/db/types";
-import { colors, formatCurrency, formatQty, isoToDisplay, spacing } from "@/theme";
+import { formatCurrency, formatQty, isoToDisplay, spacing, useColors, type Palette } from "@/theme";
 
 interface Props {
   tx: Transaction;
@@ -10,6 +11,8 @@ interface Props {
 }
 
 export function TransactionRow({ tx, onPress, onDelete }: Props) {
+  const colors = useColors();
+  const styles = useMemo(() => makeStyles(colors), [colors]);
   const isBuy = tx.action === "buy";
   return (
     <View style={styles.row}>
@@ -45,7 +48,7 @@ export function TransactionRow({ tx, onPress, onDelete }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: Palette) => StyleSheet.create({
   row: {
     flexDirection: "row",
     alignItems: "stretch",

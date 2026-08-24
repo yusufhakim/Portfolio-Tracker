@@ -1,5 +1,5 @@
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
@@ -16,13 +16,15 @@ import { TransactionForm } from "@/components/TransactionForm";
 import { defaultPortfolioId } from "@/db";
 import type { SearchResult } from "@/services/providers";
 import { useAddTransaction, useSearch } from "@/hooks/data";
-import { colors, spacing } from "@/theme";
+import { spacing, useColors, type Palette } from "@/theme";
 
 type Market = "us" | "in_mf";
 
 export default function AddAssetScreen() {
   const router = useRouter();
   const params = useLocalSearchParams<{ portfolioId?: string }>();
+  const colors = useColors();
+  const styles = useMemo(() => makeStyles(colors), [colors]);
   const [market, setMarket] = useState<Market>("us");
   const [query, setQuery] = useState("");
   const [submitted, setSubmitted] = useState("");
@@ -148,7 +150,7 @@ export default function AddAssetScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: Palette) => StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.bg, padding: spacing.lg },
   marketRow: { flexDirection: "row", marginBottom: spacing.md },
   marketChip: {

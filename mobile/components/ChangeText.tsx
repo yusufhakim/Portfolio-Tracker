@@ -1,6 +1,6 @@
 import { StyleSheet, Text, type TextStyle } from "react-native";
 
-import { colors } from "@/theme";
+import { useColors } from "@/theme";
 
 interface Props {
   /** The percentage change (already ×100). Null renders a dim "—". */
@@ -15,6 +15,7 @@ interface Props {
  * Reused by IndexCard, PortfolioRow, HoldingRow and TransactionRow.
  */
 export function ChangeText({ pct, size = 13, style }: Props) {
+  const colors = useColors();
   if (pct === null || pct === undefined || !Number.isFinite(pct)) {
     return <Text style={[styles.base, { fontSize: size, color: colors.textDim }, style]}>—</Text>;
   }

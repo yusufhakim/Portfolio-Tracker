@@ -1,7 +1,8 @@
+import { useMemo } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
 import type { RangeKey } from "@/db/types";
-import { colors, spacing } from "@/theme";
+import { spacing, useColors, type Palette } from "@/theme";
 
 const RANGES: RangeKey[] = ["1D", "1W", "1M", "3M", "1Y", "ALL"];
 
@@ -11,6 +12,8 @@ interface Props {
 }
 
 export function RangeToggle({ value, onChange }: Props) {
+  const c = useColors();
+  const styles = useMemo(() => makeStyles(c), [c]);
   return (
     <View style={styles.row}>
       {RANGES.map((r) => {
@@ -29,7 +32,7 @@ export function RangeToggle({ value, onChange }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (c: Palette) => StyleSheet.create({
   row: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -40,14 +43,14 @@ const styles = StyleSheet.create({
     marginHorizontal: 2,
     paddingVertical: spacing.sm,
     borderRadius: 8,
-    backgroundColor: colors.chip,
+    backgroundColor: c.chip,
     alignItems: "center",
   },
   chipActive: {
-    backgroundColor: colors.chipActive,
+    backgroundColor: c.chipActive,
   },
   label: {
-    color: colors.textDim,
+    color: c.textDim,
     fontSize: 12,
     fontWeight: "600",
   },

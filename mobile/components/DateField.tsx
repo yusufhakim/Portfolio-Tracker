@@ -1,8 +1,8 @@
 import DateTimePicker from "@react-native-community/datetimepicker";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Platform, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 
-import { colors, displayToIso, isoToDisplay, spacing } from "@/theme";
+import { displayToIso, isoToDisplay, spacing, useColors, type Palette } from "@/theme";
 
 interface Props {
   /** ISO yyyy-mm-dd */
@@ -12,6 +12,8 @@ interface Props {
 
 /** Date input: typeable dd/mm/yyyy plus a calendar-picker button. */
 export function DateField({ value, onChange }: Props) {
+  const colors = useColors();
+  const styles = useMemo(() => makeStyles(colors), [colors]);
   const [text, setText] = useState(isoToDisplay(value));
   const [showPicker, setShowPicker] = useState(false);
 
@@ -61,7 +63,7 @@ export function DateField({ value, onChange }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: Palette) => StyleSheet.create({
   row: { flexDirection: "row", alignItems: "center" },
   input: {
     flex: 1,

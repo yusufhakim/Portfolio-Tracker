@@ -3,7 +3,7 @@ import { Dimensions, StyleSheet, Text, View } from "react-native";
 import Svg, { Defs, LinearGradient, Path, Stop } from "react-native-svg";
 
 import type { PortfolioHistoryPoint } from "@/db/types";
-import { colors, formatCurrency, spacing } from "@/theme";
+import { formatCurrency, spacing, useColors, type Palette } from "@/theme";
 
 interface Props {
   points: PortfolioHistoryPoint[];
@@ -19,6 +19,8 @@ const HEIGHT = 200;
  * portfolio value plus a soft gradient fill beneath it.
  */
 export function PortfolioChart({ points, baseCurrency, loading }: Props) {
+  const colors = useColors();
+  const styles = useMemo(() => makeStyles(colors), [colors]);
   const width = Dimensions.get("window").width - spacing.lg * 2;
 
   const { linePath, areaPath, minVal, maxVal, trendUp } = useMemo(() => {
@@ -107,7 +109,7 @@ export function PortfolioChart({ points, baseCurrency, loading }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: Palette) => StyleSheet.create({
   placeholder: {
     height: HEIGHT,
     justifyContent: "center",
