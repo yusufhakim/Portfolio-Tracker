@@ -2,6 +2,17 @@
 
 A running log of the Portfolio Tracker project. Newest first.
 
+## Stage 3.4 — Lock-on-exit, chart x-axis fit, search-as-you-type
+- **Lock on exit:** the app now locks the **instant it leaves the foreground** (not only on a full
+  close) and asks for biometrics/PIN when you return. In-app system pickers (file/folder) and the auth
+  prompt itself are treated as trusted, so importing doesn't trigger a spurious re-lock.
+- **Chart x-axis fit:** time labels are now chosen by how many actually fit the width and spaced evenly
+  with duplicates removed, so a portfolio with only a couple of history points no longer stacks the
+  dates on top of each other.
+- **Search as you type:** on the Add-asset screen the results now **filter live as you type** a ticker
+  or company/fund name (debounced, up to **10 matches**). The Search button stays for an immediate
+  lookup.
+
 ## Stage 3.3 — Index card restyle + sparkline colour fix
 - **Fix:** the index-card sparkline could show **green while the day's change was negative** — it was
   coloured by comparing the first and last intraday points instead of the actual % change. The

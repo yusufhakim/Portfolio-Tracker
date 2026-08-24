@@ -16,6 +16,7 @@ import * as XLSX from "xlsx";
 
 import { getSetting, setSetting } from "@/db";
 import type { AssetType, TransactionInput, TxAction } from "@/db/types";
+import { runTrusted } from "@/services/lockControl";
 import { displayToIso } from "@/theme";
 
 const XLSX_MIME = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
@@ -68,16 +69,20 @@ export async function downloadTemplate(): Promise<string> {
   XLSX.utils.book_append_sheet(wb, ws, "Transactions");
   const base64 = XLSX.write(wb, { type: "base64", bookType: "xlsx" }) as string;
 
-  let dirUri = await ensureSaveDir();
-  try {
-    await writeTemplateTo(dirUri, base64);
-  } catch {
-    // Stored folder permission may be stale (folder deleted / revoked) — ask once more.
-    await setSetting(SAVE_DIR_KEY, "");
-    dirUri = await ensureSaveDir();
-    await writeTemplateTo(dirUri, base64);
-  }
-  return prettyDirName(dirUri);
+  // Opening the folder picker backgrounds the app — mark it trusted so the app
+  // lock doesn't engage while the user is choosing a folder.
+  return runTrusted(async () => {
+    let dirUri = await ensureSaveDir();
+    try {
+      await writeTemplateTo(dirUri, base64);
+    } catch {
+      // Stored folder permission may be stale (folder deleted / revoked) — ask once more.
+      await setSetting(SAVE_DIR_KEY, "");
+      dirUri = await ensureSaveDir();
+      await writeTemplateTo(dirUri, base64);
+    }
+    return prettyDirName(dirUri);
+  });
 }
 
 /** Best-effort human-readable name of the chosen SAF folder (e.g. "Download"). */
@@ -160,17 +165,19 @@ function parseNumber(v: unknown): number | null {
 
 /** Let the user pick a spreadsheet, then parse+validate it into transactions. */
 export async function pickAndParseTransactions(): Promise<ImportResult> {
-  const picked = await DocumentPicker.getDocumentAsync({
-    copyToCacheDirectory: true,
-    type: [
-      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-      "application/vnd.ms-excel",
-      "text/csv",
-      "text/comma-separated-values",
-      "application/octet-stream",
-      "*/*",
-    ],
-  });
+  const picked = await runTrusted(() =>
+    DocumentPicker.getDocumentAsync({
+      copyToCacheDirectory: true,
+      type: [
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        "application/vnd.ms-excel",
+        "text/csv",
+        "text/comma-separated-values",
+        "application/octet-stream",
+        "*/*",
+      ],
+    }),
+  );
   if (picked.canceled || !picked.assets?.length) {
     return { toInsert: [], errors: [], totalRows: 0, canceled: true };
   }

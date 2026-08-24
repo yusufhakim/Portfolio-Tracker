@@ -1,8 +1,9 @@
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
+  Keyboard,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -27,16 +28,27 @@ export default function AddAssetScreen() {
   const styles = useMemo(() => makeStyles(colors), [colors]);
   const [market, setMarket] = useState<Market>("us");
   const [query, setQuery] = useState("");
-  const [submitted, setSubmitted] = useState("");
+  const [debounced, setDebounced] = useState("");
   const [selected, setSelected] = useState<SearchResult | null>(null);
 
-  const searchQuery = useSearch(market, submitted);
+  // Filter as you type: debounce the typed text so results update ~300ms after
+  // you stop typing (avoids a request on every keystroke).
+  useEffect(() => {
+    const t = setTimeout(() => setDebounced(query.trim()), 300);
+    return () => clearTimeout(t);
+  }, [query]);
+
+  const searchQuery = useSearch(market, debounced);
   const addTx = useAddTransaction();
 
+  // The button just searches the current text immediately (no need to wait).
   const runSearch = () => {
     setSelected(null);
-    setSubmitted(query.trim());
+    setDebounced(query.trim());
+    Keyboard.dismiss();
   };
+
+  const results = (searchQuery.data ?? []).slice(0, 10); // show at most 10
 
   return (
     <KeyboardAvoidingView
@@ -50,10 +62,7 @@ export default function AddAssetScreen() {
               <Pressable
                 key={m}
                 style={[styles.marketChip, market === m && styles.marketChipActive]}
-                onPress={() => {
-                  setMarket(m);
-                  setSubmitted("");
-                }}
+                onPress={() => setMarket(m)}
               >
                 <Text style={[styles.marketText, market === m && styles.marketTextActive]}>
                   {m === "us" ? "US Stocks & ETFs" : "India Mutual Funds"}
@@ -87,9 +96,10 @@ export default function AddAssetScreen() {
 
           <FlatList
             style={styles.results}
-            data={searchQuery.data ?? []}
+            data={results}
             keyExtractor={(item) => `${item.asset_type}:${item.key}`}
             keyboardShouldPersistTaps="handled"
+            keyboardDismissMode="on-drag"
             renderItem={({ item }) => (
               <Pressable style={styles.resultRow} onPress={() => setSelected(item)}>
                 <Text style={styles.resultKey}>{item.key}</Text>
@@ -99,8 +109,12 @@ export default function AddAssetScreen() {
               </Pressable>
             )}
             ListEmptyComponent={
-              submitted && !searchQuery.isFetching ? (
-                <Text style={styles.hint}>No results for “{submitted}”.</Text>
+              debounced && !searchQuery.isFetching ? (
+                <Text style={styles.hint}>No results for “{debounced}”.</Text>
+              ) : !debounced ? (
+                <Text style={styles.hint}>
+                  Start typing a {market === "us" ? "ticker or company name" : "fund name"} to see matches.
+                </Text>
               ) : null
             }
           />

@@ -85,10 +85,21 @@ export function PortfolioChart({ points, currency, fxFactor, range, loading }: P
       y: PAD_TOP + f * plotH,
       value: max - f * (max - min),
     }));
-    const xIdx = [0, Math.floor((points.length - 1) / 2), points.length - 1];
+
+    // Pick how many x labels actually fit (≈70px each), then space them evenly
+    // and DEDUPE — so a portfolio with only 2–3 history points doesn't stack
+    // several labels on top of each other.
+    const n = points.length;
+    const maxLabels = Math.max(2, Math.min(5, Math.floor(plotW / 70)));
+    const count = Math.min(maxLabels, n);
+    const rawIdx =
+      count <= 1 ? [0] : Array.from({ length: count }, (_, k) => Math.round((k * (n - 1)) / (count - 1)));
+    const xIdx = [...new Set(rawIdx)];
     const xTicks = xIdx.map((i) => ({
       x: PAD_LEFT + i * stepX,
       label: fmtTime(points[i].ts, range),
+      first: i === 0,
+      last: i === n - 1,
     }));
 
     return { line, area, yTicks, xTicks, trendUp: values[values.length - 1] >= values[0] };
@@ -150,7 +161,7 @@ export function PortfolioChart({ points, currency, fxFactor, range, loading }: P
         strokeLinecap="round"
       />
 
-      {/* x-axis (time) labels */}
+      {/* x-axis (time) labels — evenly spaced, edge-anchored so none clip */}
       {model.xTicks.map((t, i) => (
         <SvgText
           key={`xl-${i}`}
@@ -158,7 +169,7 @@ export function PortfolioChart({ points, currency, fxFactor, range, loading }: P
           y={HEIGHT - 5}
           fontSize={9}
           fill={colors.textDim}
-          textAnchor={i === 0 ? "start" : i === model.xTicks.length - 1 ? "end" : "middle"}
+          textAnchor={t.first ? "start" : t.last ? "end" : "middle"}
         >
           {t.label}
         </SvgText>

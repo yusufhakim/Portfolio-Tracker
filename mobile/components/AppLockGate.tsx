@@ -1,46 +1,64 @@
 import * as LocalAuthentication from "expo-local-authentication";
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { ActivityIndicator, Pressable, StyleSheet, Text, View } from "react-native";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { ActivityIndicator, AppState, Pressable, StyleSheet, Text, View } from "react-native";
 
+import { beginTrusted, endTrusted, isTrusted } from "@/services/lockControl";
 import { spacing, useColors, type Palette } from "@/theme";
 
 type LockState = "checking" | "locked" | "unlocked";
 
 /**
  * Requires the phone's own lock (biometrics or device PIN/pattern/password)
- * before revealing the app on launch. If the device has no lock enrolled, or the
- * auth API errors, we fail open so the user can never be locked out of their own
- * data. Authentication runs once on cold start (not on every foreground, so the
- * file/folder pickers don't force a re-auth mid-task).
+ * before revealing the app — on cold start AND every time the app returns to the
+ * foreground after being backgrounded (so it locks the moment you leave it).
+ * In-app system pickers (file/folder) and the auth prompt itself are marked as
+ * "trusted" so they don't trip the lock. If the device has no lock enrolled, or
+ * the auth API errors, we fail open so the user can never be locked out.
  */
 export function AppLockGate({ children }: { children: React.ReactNode }) {
   const colors = useColors();
   const styles = useMemo(() => makeStyles(colors), [colors]);
   const [state, setState] = useState<LockState>("checking");
+  const stateRef = useRef<LockState>("checking");
+  stateRef.current = state;
 
   const authenticate = useCallback(async () => {
     setState("checking");
+    beginTrusted(); // the auth prompt may itself background the app
     try {
       const level = await LocalAuthentication.getEnrolledLevelAsync();
       if (level === LocalAuthentication.SecurityLevel.NONE) {
-        // No screen lock set on the phone — nothing to authenticate against.
-        setState("unlocked");
+        setState("unlocked"); // no screen lock set — nothing to authenticate against
         return;
       }
       const res = await LocalAuthentication.authenticateAsync({
         promptMessage: "Unlock Portfolio Tracker",
-        // allow the phone's PIN/pattern/password if biometrics fail or aren't set
-        disableDeviceFallback: false,
+        disableDeviceFallback: false, // allow the phone's PIN/pattern/password too
         cancelLabel: "Cancel",
       });
       setState(res.success ? "unlocked" : "locked");
     } catch {
       setState("unlocked"); // fail open on any error
+    } finally {
+      setTimeout(endTrusted, 800);
     }
   }, []);
 
+  // Cold start.
   useEffect(() => {
     authenticate();
+  }, [authenticate]);
+
+  // Lock the instant the app leaves the foreground; re-auth when it comes back.
+  useEffect(() => {
+    const sub = AppState.addEventListener("change", (next) => {
+      if (next === "background" || next === "inactive") {
+        if (!isTrusted() && stateRef.current === "unlocked") setState("locked");
+      } else if (next === "active") {
+        if (!isTrusted() && stateRef.current === "locked") authenticate();
+      }
+    });
+    return () => sub.remove();
   }, [authenticate]);
 
   if (state === "unlocked") return <>{children}</>;
