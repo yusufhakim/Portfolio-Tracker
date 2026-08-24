@@ -29,3 +29,16 @@ You are integrating a new stroke icon set into an existing React Native (Expo) a
 
 - `preview.html` — open in a browser to see all 40 glyphs and toggle themes.
 - `Portfolio Tracker.dc.html` — the 4-screen redesign these icons are drawn against.
+
+
+## Logo integration
+
+1. Copy `Logo.tsx` to `mobile/components/Logo.tsx`. Same theme hook as `Icon.tsx` — no extra wiring.
+2. Wherever the app currently shows the app name in text (splash, Settings header, About row), mount `<Logo variant="wordmark" size={22} />` — do NOT remove the surrounding container styles.
+3. On the Portfolio home header (`mobile/app/index.tsx`), place `<Logo variant="mark" size={22} />` to the LEFT of the title, gap 8.
+4. For the launcher icon, export `logo/app-icon-1024.svg` to PNG at 1024×1024 and overwrite:
+   - `mobile/assets/icon.png`
+   - `mobile/assets/adaptive-icon.png`
+   - `mobile/assets/splash-icon.png` (padded)
+   Keep the existing `app.json` paths. Do NOT introduce new asset paths.
+5. Do NOT re-colour the app-icon background. It is `colors.accent` by contract.

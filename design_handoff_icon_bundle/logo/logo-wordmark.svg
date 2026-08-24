@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 64" fill="none">
+  
+  <rect x="0" y="8" width="48" height="48" rx="11" fill="currentColor"></rect>
+  <path d="M9 44 L21 32 L31 38 L41 22" stroke="var(--logo-inverse, #FFFFFF)" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"></path>
+  <circle cx="9" cy="44" r="3" fill="var(--logo-inverse, #FFFFFF)"></circle>
+  <circle cx="41" cy="22" r="4" fill="var(--logo-inverse, #FFFFFF)"></circle>
+  
+  <text x="64" y="41" font-family="'Instrument Serif', 'Georgia', serif" font-size="30" font-style="italic" fill="currentColor" letter-spacing="-0.5">
+    Portfolio.
+  </text>
+</svg>

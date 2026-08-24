@@ -53,3 +53,31 @@ import { Icon } from "@/components/Icon";
 
 ## Screens this touches
 Every mobile screen — see `icons.manifest.json` `placements[*].files` for exact target files.
+
+
+## Logo
+A minimalist mark: a rising line-chart glyph through three waypoints, anchored by a small filled dot at the low and a larger filled dot at the high. The whole app in one gesture — accumulate, hold, rise.
+
+Four variants ship in `logo/` and are wired in `Logo.tsx`:
+
+| Variant | File | When to use |
+| --- | --- | --- |
+| `mark` | `logo/logo-mark.svg` | Default. Monochrome line + dots, no container. Inherits `useColors().text`. |
+| `mark-outline` | `logo/logo-mark-outline.svg` | Rounded-square container with the mark inside — for lockups on busy backgrounds. |
+| `app-icon` | `logo/app-icon-128.svg`, `logo/app-icon-1024.svg` | The launcher icon. Solid accent square, mark in white. Export the 1024 as PNG into `mobile/assets/icon.png` and `mobile/assets/adaptive-icon.png`. |
+| `wordmark` | `logo/logo-wordmark.svg` | Mark + "Portfolio." in Instrument Serif italic. Splash, About, Settings header. |
+
+Usage:
+```tsx
+import { Logo } from "@/components/Logo";
+
+<Logo variant="mark" size={28} />           // header
+<Logo variant="app-icon" size={64} />       // splash / about
+<Logo variant="wordmark" size={22} />       // settings header
+```
+
+### Rules
+- Never re-colour the app-icon background to anything other than `colors.accent`.
+- Minimum clear space around any variant = height of the low anchor dot.
+- Never stretch. Only scale uniformly via `size`.
+- Do not add a drop shadow or gradient. The mark is flat by design.
