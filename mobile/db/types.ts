@@ -2,7 +2,7 @@
 
 export type AssetType = "us_equity" | "us_etf" | "in_mf";
 export type TxAction = "buy" | "sell";
-export type RangeKey = "1D" | "1W" | "1M" | "3M" | "1Y" | "5Y" | "MAX" | "ALL";
+export type RangeKey = "1D" | "5D" | "1M" | "6M" | "YTD" | "1Y" | "5Y" | "MAX";
 
 export const US_ASSET_TYPES: AssetType[] = ["us_equity", "us_etf"];
 

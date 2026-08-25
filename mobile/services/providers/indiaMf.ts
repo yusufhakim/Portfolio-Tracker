@@ -8,13 +8,13 @@ const CURRENCY = "INR";
 
 const RANGE_POINTS: Record<RangeKey, number> = {
   "1D": 2,
-  "1W": 6,
+  "5D": 6,
   "1M": 23,
-  "3M": 66,
+  "6M": 130,
+  YTD: 260,
   "1Y": 260,
   "5Y": 1300,
   MAX: 100000,
-  ALL: 100000,
 };
 
 // mfapi.in dates are dd-mm-yyyy

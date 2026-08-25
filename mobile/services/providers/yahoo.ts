@@ -12,13 +12,13 @@ const CURRENCY = "USD";
 // Yahoo chart range + interval per app range. Longer ranges use coarser intervals.
 const RANGE_MAP: Record<RangeKey, { range: string; interval: string }> = {
   "1D": { range: "1d", interval: "5m" },
-  "1W": { range: "5d", interval: "30m" },
+  "5D": { range: "5d", interval: "1d" },
   "1M": { range: "1mo", interval: "1d" },
-  "3M": { range: "3mo", interval: "1d" },
+  "6M": { range: "6mo", interval: "1d" },
+  YTD: { range: "ytd", interval: "1d" },
   "1Y": { range: "1y", interval: "1d" },
   "5Y": { range: "5y", interval: "1wk" },
   MAX: { range: "max", interval: "1mo" },
-  ALL: { range: "max", interval: "1mo" },
 };
 
 function sym(symbol: string): string {

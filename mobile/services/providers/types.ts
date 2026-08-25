@@ -23,11 +23,11 @@ export interface SearchResult {
 // Approximate lookback window per range, in days.
 export const RANGE_DAYS: Record<RangeKey, number> = {
   "1D": 1,
-  "1W": 7,
+  "5D": 5,
   "1M": 31,
-  "3M": 93,
+  "6M": 184,
+  YTD: 366,
   "1Y": 366,
   "5Y": 1830,
   MAX: 10950,
-  ALL: 10950,
 };

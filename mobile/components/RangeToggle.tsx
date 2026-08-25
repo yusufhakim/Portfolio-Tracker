@@ -4,7 +4,7 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 import type { RangeKey } from "@/db/types";
 import { spacing, useColors, type Palette } from "@/theme";
 
-const RANGES: RangeKey[] = ["1D", "1W", "1M", "3M", "1Y", "5Y", "MAX"];
+const RANGES: RangeKey[] = ["1D", "5D", "1M", "6M", "YTD", "1Y", "5Y", "MAX"];
 
 interface Props {
   value: RangeKey;
@@ -51,7 +51,7 @@ const makeStyles = (c: Palette) => StyleSheet.create({
   },
   label: {
     color: c.textDim,
-    fontSize: 11,
+    fontSize: 10,
     fontWeight: "600",
   },
   labelActive: {

@@ -54,8 +54,9 @@ function fmtTime(ts: string, range: RangeKey): string {
   const dd = String(d.getUTCDate()).padStart(2, "0");
   const mm = String(d.getUTCMonth() + 1).padStart(2, "0");
   const yy = String(d.getUTCFullYear()).slice(2);
-  if (range === "1W" || range === "1M") return `${dd}/${mm}`;
-  return `${MONTHS[d.getUTCMonth()]} ${yy}`; // 3M / 1Y / 5Y / MAX
+  if (range === "5Y" || range === "MAX") return `${d.getUTCFullYear()}`; // yyyy
+  if (range === "1Y") return `${MONTHS[d.getUTCMonth()]}/${yy}`; // mmm/yy
+  return `${dd}/${mm}`; // 5D / 1M / 6M / YTD
 }
 
 /**
