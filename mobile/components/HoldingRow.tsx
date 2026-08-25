@@ -22,12 +22,24 @@ const TYPE_LABEL: Record<AssetType, string> = {
 interface Props {
   holding: Holding;
   onPress: (h: Holding) => void;
+  /** Portfolio display currency for the value/change/gain columns. */
+  displayCurrency: string;
+  /** Multiply a USD amount by this to get the display currency. */
+  fxFactor: number;
 }
 
-export function HoldingRow({ holding: h, onPress }: Props) {
+const conv = (usd: number | null, factor: number): number | null =>
+  usd === null ? null : usd * factor;
+
+export function HoldingRow({ holding: h, onPress, displayCurrency, fxFactor }: Props) {
   const colors = useColors();
   const styles = useMemo(() => makeStyles(colors), [colors]);
-  const ccy = h.currency;
+  // Value / today's change / total gain are shown in the portfolio's currency
+  // (converted from the USD-normalized figures). The per-share price stays in the
+  // asset's own native currency.
+  const value = conv(h.market_value_usd, fxFactor);
+  const day = conv(h.day_change_usd, fxFactor);
+  const gain = conv(h.gain_usd, fxFactor);
   return (
     <Pressable style={styles.row} onPress={() => onPress(h)}>
       <View style={styles.left}>
@@ -39,19 +51,19 @@ export function HoldingRow({ holding: h, onPress }: Props) {
             <Text style={styles.badgeText}>{TYPE_LABEL[h.asset_type]}</Text>
           </View>
         </View>
-        <Text style={styles.sub}>{formatQty(h.qty)} @ {formatCurrency(h.price, ccy)}</Text>
+        <Text style={styles.sub}>{formatQty(h.qty)} @ {formatCurrency(h.price, h.currency)}</Text>
         <View style={styles.dayRow}>
-          <Text style={[styles.day, { color: gainColor(h.day_change) }]}>
-            Today {formatSignedCurrency(h.day_change, ccy)}{"  "}
+          <Text style={[styles.day, { color: gainColor(day) }]}>
+            Today {formatSignedCurrency(day, displayCurrency)}{"  "}
           </Text>
           <ChangeText pct={h.day_change_pct} size={12} />
         </View>
       </View>
       <View style={styles.right}>
-        <Text style={styles.value}>{formatCurrency(h.market_value, ccy)}</Text>
+        <Text style={styles.value}>{formatCurrency(value, displayCurrency)}</Text>
         <View style={styles.gainRow}>
-          <Text style={[styles.gain, { color: gainColor(h.gain) }]}>
-            {formatSignedCurrency(h.gain, ccy)}{"  "}
+          <Text style={[styles.gain, { color: gainColor(gain) }]}>
+            {formatSignedCurrency(gain, displayCurrency)}{"  "}
           </Text>
           <ChangeText pct={h.gain_pct} size={12} />
         </View>

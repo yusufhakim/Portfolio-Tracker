@@ -1,8 +1,6 @@
 // Portfolio valuation + history assembly from on-device transactions & prices.
 import {
-  fxRateAt,
   getAllPriceLatest,
-  getHistorySince,
   getPortfolioById,
   latestFxRate,
   listPortfolios,
@@ -20,15 +18,12 @@ import type {
   Transaction,
 } from "@/db/types";
 
+import { getCandles } from "./providers";
 import { FX_PAIR } from "./providers/fx";
-import { RANGE_DAYS } from "./providers/types";
+import type { CandlePoint } from "./providers/types";
 import { reduceLots, toUsd } from "./lots";
 
 const EPS = 1e-9;
-
-function dayKey(iso: string): string {
-  return iso.slice(0, 10); // yyyy-mm-dd
-}
 
 function round2(n: number): number {
   return Math.round(n * 100) / 100;
@@ -214,72 +209,88 @@ export async function listPortfoliosWithValue(): Promise<PortfolioWithValue[]> {
 }
 
 /**
- * Portfolio value over time (USD) for one portfolio, reflecting the qty actually
- * held on each day (from transaction dates) × that day's close, converted to USD.
+ * Portfolio value over time (USD) for one portfolio and range. Candles are
+ * fetched live per range (Yahoo for US, mfapi for India), so long ranges show a
+ * real curve back to when holdings were first bought and 1D shows an intraday
+ * curve. At each point: qty held as-of that date × that period's close, summed
+ * and converted to USD (latest FX). The chart applies the display-currency factor.
  */
 export async function getHistory(
   portfolioId: number, range: RangeKey,
 ): Promise<PortfolioHistoryPoint[]> {
-  const days = RANGE_DAYS[range] ?? 366;
-  const cutoff = new Date(Date.now() - days * 86400_000).toISOString();
   const txns = await listTransactionsByPortfolio(portfolioId);
   const assets = assetsFromTxns(txns);
   if (assets.length === 0) return [];
 
+  const usdInr = await latestFxRate(FX_PAIR);
+  const intraday = range === "1D";
+  const bucketKey = (ts: string) => (intraday ? ts : ts.slice(0, 10));
+
   interface Series {
     asset: Asset;
-    daily: Map<string, number>;
+    closeByKey: Map<string, number>;
     deltas: { date: string; delta: number }[];
   }
-  const series: Series[] = [];
-  const allDays = new Set<string>();
 
-  for (const a of assets) {
-    const pts = await getHistorySince(a.asset_type, a.key, cutoff);
-    const daily = new Map<string, number>();
-    for (const p of pts) {
-      daily.set(dayKey(p.ts), p.close);
-      allDays.add(dayKey(p.ts));
+  const bucketTs = new Map<string, string>(); // bucket key -> representative ISO ts
+
+  const candleLists = await Promise.all(
+    assets.map(async (a) => {
+      try {
+        return { a, candles: await getCandles(a.asset_type, a.key, range) };
+      } catch {
+        return { a, candles: [] as CandlePoint[] };
+      }
+    }),
+  );
+
+  const series: Series[] = [];
+  for (const { a, candles } of candleLists) {
+    const closeByKey = new Map<string, number>();
+    for (const c of candles) {
+      const k = bucketKey(c.ts);
+      closeByKey.set(k, c.close); // candles are ascending → last within a bucket wins
+      const rep = bucketTs.get(k);
+      if (!rep || c.ts > rep) bucketTs.set(k, c.ts);
     }
     const deltas = txns
       .filter((t) => t.asset_type === a.asset_type && t.key === a.key)
       .map((t) => ({ date: t.trade_date, delta: t.action === "buy" ? t.qty : -t.qty }))
       .sort((x, y) => (x.date < y.date ? -1 : x.date > y.date ? 1 : 0));
-    series.push({ asset: a, daily, deltas });
+    series.push({ asset: a, closeByKey, deltas });
   }
 
-  if (allDays.size === 0) return [];
-  const orderedDays = [...allDays].sort();
+  const keys = [...bucketTs.keys()].sort();
+  if (keys.length === 0) return [];
 
   const lastClose = new Map<string, number>();
-  const deltaPtr = new Map<string, number>();
+  const ptr = new Map<string, number>();
   const heldQty = new Map<string, number>();
   for (const s of series) {
-    deltaPtr.set(s.asset.key, 0);
-    heldQty.set(s.asset.key, 0);
+    const akey = `${s.asset.asset_type}:${s.asset.key}`;
+    ptr.set(akey, 0);
+    heldQty.set(akey, 0);
   }
 
   const out: PortfolioHistoryPoint[] = [];
-  for (const day of orderedDays) {
-    const dayEndISO = `${day}T23:59:59.999Z`;
-    const usdInr = await fxRateAt(FX_PAIR, dayEndISO);
+  for (const k of keys) {
+    const day = k.slice(0, 10);
     let total = 0;
     let hasValue = false;
     for (const s of series) {
-      const kkey = `${s.asset.asset_type}:${s.asset.key}`;
-      let ptr = deltaPtr.get(s.asset.key) ?? 0;
-      let qty = heldQty.get(s.asset.key) ?? 0;
-      while (ptr < s.deltas.length && s.deltas[ptr].date <= day) {
-        qty += s.deltas[ptr].delta;
-        ptr += 1;
+      const akey = `${s.asset.asset_type}:${s.asset.key}`;
+      let p = ptr.get(akey) ?? 0;
+      let qty = heldQty.get(akey) ?? 0;
+      while (p < s.deltas.length && s.deltas[p].date <= day) {
+        qty += s.deltas[p].delta;
+        p += 1;
       }
-      deltaPtr.set(s.asset.key, ptr);
-      heldQty.set(s.asset.key, qty);
+      ptr.set(akey, p);
+      heldQty.set(akey, qty);
 
-      const c = s.daily.get(day);
-      if (c !== undefined) lastClose.set(kkey, c);
-      const close = lastClose.get(kkey);
-
+      const c = s.closeByKey.get(k);
+      if (c !== undefined) lastClose.set(akey, c);
+      const close = lastClose.get(akey);
       if (close !== undefined && qty > EPS) {
         const usd = toUsd(qty * close, s.asset.currency, usdInr);
         if (usd !== null) {
@@ -288,7 +299,7 @@ export async function getHistory(
         }
       }
     }
-    if (hasValue) out.push({ ts: `${day}T00:00:00.000Z`, value: round2(total) });
+    if (hasValue) out.push({ ts: bucketTs.get(k)!, value: round2(total) });
   }
   return out;
 }

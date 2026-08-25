@@ -93,7 +93,8 @@ with Android Studio's toolchain (recommended, `windows-build-apk-local.bat`) or 
 ### Data sources (all free)
 | Data | Provider | Notes |
 |---|---|---|
-| US equities / ETFs | [Finnhub](https://finnhub.io) | Free tier; searches by symbol **and** name. Key embedded in `app.json` `extra.finnhubApiKey` (personal free key; rotate at finnhub.io). |
+| US equities / ETFs | [Finnhub](https://finnhub.io) | Free tier for live quotes + search; key in `app.json` `extra.finnhubApiKey`. |
+| US history + fallback | Yahoo Finance chart/search | Keyless. Source for **historical candles** (all chart ranges) and a **fallback** for quotes/search so tickers Finnhub's free tier omits (e.g. LIT) still work. |
 | Indian mutual fund NAVs | [mfapi.in](https://www.mfapi.in) | Keyless; search by name, latest + full historical NAV. |
 | FX (USD↔INR↔AED) | [open.er-api.com](https://open.er-api.com) | Keyless, USD-based rates at full precision; drives the per-portfolio display currency. (xe.com has no free public API.) |
 | Market indices (S&P 500, Nasdaq, Dow / Sensex, Nifty 50, Nifty Next 50) | Yahoo Finance chart API | Keyless, unofficial; dashboard cards only, not stored. A card shows “Unavailable” if Yahoo hiccups. |

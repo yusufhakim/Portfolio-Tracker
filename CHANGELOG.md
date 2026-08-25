@@ -2,6 +2,21 @@
 
 A running log of the Portfolio Tracker project. Newest first.
 
+## Stage 3.6 — Real chart history, Yahoo fallback, currency-correct holdings, persistent sort
+- **Chart now shows real history for every range.** Finnhub's free candle endpoint is unavailable, so the
+  performance chart was drawing a flat diagonal line. History is now built from **live candles fetched
+  per range** (Yahoo for US, mfapi for India): 1M/3M/1Y show real daily curves back to when you first
+  bought, and long ranges work too. Added **5Y** and **MAX** toggles.
+- **1D is now intraday**, with x-axis times shown in **UAE time (Asia/Dubai)**.
+- **Previous-close dotted line** drawn on the chart with a label in the portfolio's chosen currency.
+- **Yahoo fallback for US prices & search:** tickers Finnhub's free tier doesn't cover (e.g. **LIT** —
+  Global X Lithium & Battery Tech ETF) now resolve — search merges Finnhub + Yahoo, and quotes fall back
+  to Yahoo for any symbol Finnhub doesn't return.
+- **Holdings shown in the portfolio's currency:** each holding's value, today's change and total gain now
+  convert to the portfolio's display currency (the per-share price stays in the asset's native currency).
+- **Sort is remembered:** the Holdings sort field/direction persists across navigation (saved on-device).
+- Verified: `tsc` clean, `npm test`, and `expo export` all pass.
+
 ## Stage 3.5 — Icon set + logo (design handoff)
 - Added a themed **stroke icon component** (`components/Icon.tsx`, 40 glyphs) and a **logo component**
   (`components/Logo.tsx`); both inherit the theme via `useColors()` so they follow light/dark/system.

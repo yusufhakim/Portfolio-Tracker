@@ -20,6 +20,8 @@ interface Props {
   fxFactor: number;
   /** Selected time range — drives the x-axis label style. */
   range: RangeKey;
+  /** Previous-close portfolio value in USD (drawn as a dotted reference line). */
+  prevCloseUsd?: number | null;
   loading?: boolean;
 }
 
@@ -43,12 +45,17 @@ const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "
 
 /** Format a timestamp for the x-axis according to the selected range. */
 function fmtTime(ts: string, range: RangeKey): string {
+  if (range === "1D") {
+    // Intraday: show the time in UAE (Asia/Dubai = UTC+4, no DST).
+    const d = new Date(new Date(ts).getTime() + 4 * 3600 * 1000);
+    return `${String(d.getUTCHours()).padStart(2, "0")}:${String(d.getUTCMinutes()).padStart(2, "0")}`;
+  }
   const d = new Date(ts);
   const dd = String(d.getUTCDate()).padStart(2, "0");
   const mm = String(d.getUTCMonth() + 1).padStart(2, "0");
   const yy = String(d.getUTCFullYear()).slice(2);
-  if (range === "1D" || range === "1W" || range === "1M") return `${dd}/${mm}`;
-  return `${MONTHS[d.getUTCMonth()]} ${yy}`; // 3M / 1Y / ALL
+  if (range === "1W" || range === "1M") return `${dd}/${mm}`;
+  return `${MONTHS[d.getUTCMonth()]} ${yy}`; // 3M / 1Y / 5Y / MAX
 }
 
 /**
@@ -56,7 +63,14 @@ function fmtTime(ts: string, range: RangeKey): string {
  * value ticks that rescale as the portfolio value changes) and a dynamic
  * **x-axis** (time labels that follow the selected 1D…ALL range).
  */
-export function PortfolioChart({ points, currency, fxFactor, range, loading }: Props) {
+export function PortfolioChart({
+  points,
+  currency,
+  fxFactor,
+  range,
+  prevCloseUsd,
+  loading,
+}: Props) {
   const colors = useColors();
   const width = Dimensions.get("window").width - spacing.lg * 2;
   const plotW = width - PAD_LEFT;
@@ -65,15 +79,19 @@ export function PortfolioChart({ points, currency, fxFactor, range, loading }: P
   const model = useMemo(() => {
     if (points.length < 2) return null;
     const values = points.map((p) => p.value * fxFactor);
-    const min = Math.min(...values);
-    const max = Math.max(...values);
+    const prev =
+      prevCloseUsd != null && Number.isFinite(prevCloseUsd) ? prevCloseUsd * fxFactor : null;
+    // Include the prev-close in the domain so its dotted line is always visible.
+    const domain = prev != null ? [...values, prev] : values;
+    const min = Math.min(...domain);
+    const max = Math.max(...domain);
     const span = max - min || 1;
     const stepX = plotW / (points.length - 1);
+    const yOf = (v: number) => PAD_TOP + (1 - (v - min) / span) * plotH;
 
     const coords = values.map((v, i) => {
       const x = PAD_LEFT + i * stepX;
-      const y = PAD_TOP + (1 - (v - min) / span) * plotH;
-      return [x, y] as const;
+      return [x, yOf(v)] as const;
     });
     const line = coords
       .map(([x, y], i) => `${i === 0 ? "M" : "L"}${x.toFixed(2)},${y.toFixed(2)}`)
@@ -102,8 +120,18 @@ export function PortfolioChart({ points, currency, fxFactor, range, loading }: P
       last: i === n - 1,
     }));
 
-    return { line, area, yTicks, xTicks, trendUp: values[values.length - 1] >= values[0] };
-  }, [points, fxFactor, range, plotW, plotH]);
+    const prevLine =
+      prev != null ? { y: yOf(prev), value: prev } : null;
+
+    return {
+      line,
+      area,
+      yTicks,
+      xTicks,
+      prevLine,
+      trendUp: values[values.length - 1] >= values[0],
+    };
+  }, [points, fxFactor, range, prevCloseUsd, plotW, plotH]);
 
   if (loading || !model) {
     return (
@@ -160,6 +188,31 @@ export function PortfolioChart({ points, currency, fxFactor, range, loading }: P
         strokeLinejoin="round"
         strokeLinecap="round"
       />
+
+      {/* previous-close dotted reference line + label (in the chosen currency) */}
+      {model.prevLine && (
+        <>
+          <Line
+            x1={PAD_LEFT}
+            y1={model.prevLine.y}
+            x2={width}
+            y2={model.prevLine.y}
+            stroke={colors.textDim}
+            strokeWidth={1}
+            strokeDasharray="2 4"
+            strokeLinecap="round"
+          />
+          <SvgText
+            x={width}
+            y={Math.max(model.prevLine.y - 4, PAD_TOP + 8)}
+            fontSize={9}
+            fill={colors.textDim}
+            textAnchor="end"
+          >
+            {`Prev close ${currencySymbol(currency)}${Math.round(model.prevLine.value).toLocaleString()}`}
+          </SvgText>
+        </>
+      )}
 
       {/* x-axis (time) labels — evenly spaced, edge-anchored so none clip */}
       {model.xTicks.map((t, i) => (

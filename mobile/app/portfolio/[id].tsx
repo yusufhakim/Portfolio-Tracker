@@ -1,5 +1,5 @@
 import { Link, Stack, useLocalSearchParams, useRouter } from "expo-router";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
@@ -18,6 +18,7 @@ import { RangeToggle } from "@/components/RangeToggle";
 import { SegmentedToggle } from "@/components/SegmentedToggle";
 import { TransactionRow } from "@/components/TransactionRow";
 import { confirmDeleteTransaction } from "@/components/confirmDeleteTransaction";
+import { getSetting, setSetting } from "@/db";
 import type { Holding, RangeKey, Transaction } from "@/db/types";
 import {
   useDeleteTransaction,
@@ -49,7 +50,24 @@ export default function PortfolioDetailScreen() {
 
   const [range, setRange] = useState<RangeKey>("1M");
   const [tab, setTab] = useState<Tab>("holdings");
-  const [sort, setSort] = useState<SortState>(defaultSort());
+
+  // Remember the chosen holdings sort across navigation (persisted in settings).
+  const [sort, setSortState] = useState<SortState>(defaultSort());
+  useEffect(() => {
+    getSetting("holdings_sort").then((v) => {
+      if (!v) return;
+      try {
+        const s = JSON.parse(v);
+        if (s?.field && s?.dir) setSortState(s as SortState);
+      } catch {
+        /* ignore bad value */
+      }
+    });
+  }, []);
+  const setSort = (s: SortState) => {
+    setSortState(s);
+    setSetting("holdings_sort", JSON.stringify(s)).catch(() => {});
+  };
 
   const meta = usePortfolioMeta(portfolioId);
   const portfolioQuery = usePortfolio(portfolioId);
@@ -97,6 +115,7 @@ export default function PortfolioDetailScreen() {
         currency={ccy}
         fxFactor={p?.fx_factor ?? 1}
         range={range}
+        prevCloseUsd={p ? p.total_value_usd - p.day_change_usd : null}
         loading={historyQuery.isLoading}
       />
       <RangeToggle value={range} onChange={setRange} />
@@ -174,6 +193,8 @@ export default function PortfolioDetailScreen() {
           showingHoldings ? (
             <HoldingRow
               holding={item as Holding}
+              displayCurrency={ccy}
+              fxFactor={p?.fx_factor ?? 1}
               onPress={(h) =>
                 router.push({
                   pathname: "/asset/[key]",

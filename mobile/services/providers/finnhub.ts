@@ -13,7 +13,9 @@ const RESOLUTION: Record<RangeKey, { resolution: string; days: number }> = {
   "1M": { resolution: "D", days: 31 },
   "3M": { resolution: "D", days: 93 },
   "1Y": { resolution: "D", days: 366 },
-  ALL: { resolution: "W", days: 3650 },
+  "5Y": { resolution: "W", days: 1830 },
+  MAX: { resolution: "M", days: 10950 },
+  ALL: { resolution: "M", days: 10950 },
 };
 
 function tokenParam(): string {

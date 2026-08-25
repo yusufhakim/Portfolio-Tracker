@@ -27,5 +27,7 @@ export const RANGE_DAYS: Record<RangeKey, number> = {
   "1M": 31,
   "3M": 93,
   "1Y": 366,
-  ALL: 3650,
+  "5Y": 1830,
+  MAX: 10950,
+  ALL: 10950,
 };

@@ -12,6 +12,8 @@ const RANGE_POINTS: Record<RangeKey, number> = {
   "1M": 23,
   "3M": 66,
   "1Y": 260,
+  "5Y": 1300,
+  MAX: 100000,
   ALL: 100000,
 };
 
