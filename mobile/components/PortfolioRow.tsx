@@ -2,8 +2,9 @@ import { useMemo } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
 import { ChangeText } from "@/components/ChangeText";
+import { MoneyText } from "@/components/MoneyText";
 import type { PortfolioWithValue } from "@/db/types";
-import { formatMoney0, spacing, useColors, type Palette } from "@/theme";
+import { spacing, useColors, type Palette } from "@/theme";
 
 interface Props {
   portfolio: PortfolioWithValue;
@@ -22,7 +23,12 @@ export function PortfolioRow({ portfolio: p, onPress }: Props) {
         <Text style={styles.sub}>Total value ({p.display_currency})</Text>
       </View>
       <View style={styles.right}>
-        <Text style={styles.value}>{formatMoney0(p.value_display, p.display_currency)}</Text>
+        <MoneyText
+          value={p.value_display}
+          currency={p.display_currency}
+          decimals={0}
+          style={styles.value}
+        />
         <ChangeText pct={p.day_change_pct} size={13} />
       </View>
     </Pressable>

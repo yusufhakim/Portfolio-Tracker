@@ -13,6 +13,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { HoldingRow } from "@/components/HoldingRow";
 import { HoldingsSort, defaultSort, type SortState } from "@/components/HoldingsSort";
+import { MoneyText } from "@/components/MoneyText";
 import { PortfolioChart } from "@/components/PortfolioChart";
 import { RangeToggle } from "@/components/RangeToggle";
 import { SegmentedToggle } from "@/components/SegmentedToggle";
@@ -29,9 +30,7 @@ import {
   useTransactions,
 } from "@/hooks/data";
 import {
-  formatMoney0,
   formatPct,
-  formatSignedCurrency,
   gainColor,
   spacing,
   useColors,
@@ -101,13 +100,36 @@ export default function PortfolioDetailScreen() {
     <View>
       <View style={styles.summary}>
         <Text style={styles.summaryLabel}>Total Value ({ccy})</Text>
-        <Text style={styles.summaryValue}>{formatMoney0(p?.total_value_display, ccy)}</Text>
-        <Text style={[styles.summaryGain, { color: gainColor(p?.total_gain_usd) }]}>
-          {formatSignedCurrency(p?.total_gain_display, ccy)} ({formatPct(p?.total_gain_pct)}) all-time
-        </Text>
-        <Text style={[styles.summaryDay, { color: gainColor(p?.day_change_usd) }]}>
-          {formatSignedCurrency(p?.day_change_display, ccy)} today
-        </Text>
+        <MoneyText
+          value={p?.total_value_display}
+          currency={ccy}
+          decimals={0}
+          style={styles.summaryValue}
+        />
+        <View style={styles.summaryLine}>
+          <MoneyText
+            value={p?.total_gain_display}
+            currency={ccy}
+            decimals={2}
+            signed
+            style={styles.summaryGain}
+            color={gainColor(p?.total_gain_usd)}
+          />
+          <Text style={[styles.summaryGain, { color: gainColor(p?.total_gain_usd) }]}>
+            {" "}({formatPct(p?.total_gain_pct)}) all-time
+          </Text>
+        </View>
+        <View style={styles.summaryLine}>
+          <MoneyText
+            value={p?.day_change_display}
+            currency={ccy}
+            decimals={2}
+            signed
+            style={styles.summaryDay}
+            color={gainColor(p?.day_change_usd)}
+          />
+          <Text style={[styles.summaryDay, { color: gainColor(p?.day_change_usd) }]}> today</Text>
+        </View>
       </View>
 
       <PortfolioChart
@@ -244,8 +266,9 @@ const makeStyles = (colors: Palette) => StyleSheet.create({
   summary: { alignItems: "center", marginBottom: spacing.lg },
   summaryLabel: { color: colors.textDim, fontSize: 13 },
   summaryValue: { color: colors.text, fontSize: 34, fontWeight: "800", marginTop: 4 },
-  summaryGain: { fontSize: 14, marginTop: 6, fontWeight: "600" },
-  summaryDay: { fontSize: 13, marginTop: 2 },
+  summaryLine: { flexDirection: "row", alignItems: "center", marginTop: 4 },
+  summaryGain: { fontSize: 14, fontWeight: "600" },
+  summaryDay: { fontSize: 13 },
   controlsRow: {
     flexDirection: "row",
     alignItems: "center",

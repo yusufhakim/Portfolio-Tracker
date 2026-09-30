@@ -1,7 +1,8 @@
-import { useMemo } from "react";
+import { Fragment, useMemo } from "react";
 import { Dimensions, StyleSheet, Text, View } from "react-native";
 import Svg, {
   Defs,
+  G,
   Line,
   LinearGradient,
   Path,
@@ -9,6 +10,7 @@ import Svg, {
   Text as SvgText,
 } from "react-native-svg";
 
+import { DIRHAM_PATH, DIRHAM_VB } from "@/components/DirhamGlyph";
 import type { PortfolioHistoryPoint, RangeKey } from "@/db/types";
 import { currencySymbol, spacing, useColors } from "@/theme";
 
@@ -30,15 +32,19 @@ const PAD_LEFT = 54; // gutter for y-axis ($) labels
 const PAD_BOTTOM = 20; // gutter for x-axis (time) labels
 const PAD_TOP = 10;
 
-/** Compact money for axis ticks, e.g. "$117k", "₹9.7M", "D4,200". */
-function compactMoney(v: number, ccy: string): string {
-  const sym = currencySymbol(ccy);
+/** Compact number for axis ticks, WITHOUT a currency symbol, e.g. "117k", "9.7M". */
+function compactNum(v: number): string {
   const abs = Math.abs(v);
-  if (abs >= 1e7) return `${sym}${(v / 1e6).toFixed(1)}M`;
-  if (abs >= 1e6) return `${sym}${(v / 1e6).toFixed(2)}M`;
-  if (abs >= 1e4) return `${sym}${Math.round(v / 1e3)}k`;
-  if (abs >= 1e3) return `${sym}${(v / 1e3).toFixed(1)}k`;
-  return `${sym}${Math.round(v)}`;
+  if (abs >= 1e7) return `${(v / 1e6).toFixed(1)}M`;
+  if (abs >= 1e6) return `${(v / 1e6).toFixed(2)}M`;
+  if (abs >= 1e4) return `${Math.round(v / 1e3)}k`;
+  if (abs >= 1e3) return `${(v / 1e3).toFixed(1)}k`;
+  return `${Math.round(v)}`;
+}
+
+/** Compact money for axis ticks, e.g. "$117k", "₹9.7M". */
+function compactMoney(v: number, ccy: string): string {
+  return `${currencySymbol(ccy)}${compactNum(v)}`;
 }
 
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
@@ -145,6 +151,9 @@ export function PortfolioChart({
   }
 
   const lineColor = model.trendUp ? colors.positive : colors.negative;
+  const isAed = currency.toUpperCase() === "AED";
+  const gH = 8; // y-label glyph height
+  const gW = gH * (DIRHAM_VB.w / DIRHAM_VB.h);
 
   return (
     <Svg width={width} height={HEIGHT}>
@@ -155,7 +164,7 @@ export function PortfolioChart({
         </LinearGradient>
       </Defs>
 
-      {/* gridlines + y-axis (value) labels */}
+      {/* gridlines + y-axis (value) labels (left-aligned; AED uses the Dirham glyph) */}
       {model.yTicks.map((t, i) => (
         <Line
           key={`grid-${i}`}
@@ -168,16 +177,22 @@ export function PortfolioChart({
         />
       ))}
       {model.yTicks.map((t, i) => (
-        <SvgText
-          key={`yl-${i}`}
-          x={PAD_LEFT - 6}
-          y={t.y + 3}
-          fontSize={9}
-          fill={colors.textDim}
-          textAnchor="end"
-        >
-          {compactMoney(t.value, currency)}
-        </SvgText>
+        <Fragment key={`yl-${i}`}>
+          {isAed ? (
+            <>
+              <G transform={`translate(2, ${(t.y - gH / 2).toFixed(1)}) scale(${(gH / DIRHAM_VB.h).toFixed(4)})`}>
+                <Path d={DIRHAM_PATH} fill={colors.textDim} fillRule="evenodd" />
+              </G>
+              <SvgText x={2 + gW + 2} y={t.y + 3} fontSize={9} fill={colors.textDim} textAnchor="start">
+                {compactNum(t.value)}
+              </SvgText>
+            </>
+          ) : (
+            <SvgText x={2} y={t.y + 3} fontSize={9} fill={colors.textDim} textAnchor="start">
+              {compactMoney(t.value, currency)}
+            </SvgText>
+          )}
+        </Fragment>
       ))}
 
       <Path d={model.area} fill="url(#areaFill)" />
@@ -210,7 +225,7 @@ export function PortfolioChart({
             fill={colors.textDim}
             textAnchor="end"
           >
-            {`Prev close ${currencySymbol(currency)}${Math.round(model.prevLine.value).toLocaleString()}`}
+            {`Prev close ${isAed ? "" : currencySymbol(currency)}${Math.round(model.prevLine.value).toLocaleString()}`}
           </SvgText>
         </>
       )}

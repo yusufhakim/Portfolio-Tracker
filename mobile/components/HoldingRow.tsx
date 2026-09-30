@@ -2,11 +2,11 @@ import { useMemo } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
 import { ChangeText } from "@/components/ChangeText";
+import { MoneyText } from "@/components/MoneyText";
 import type { AssetType, Holding } from "@/db/types";
 import {
   formatCurrency,
   formatQty,
-  formatSignedCurrency,
   gainColor,
   spacing,
   useColors,
@@ -53,18 +53,31 @@ export function HoldingRow({ holding: h, onPress, displayCurrency, fxFactor }: P
         </View>
         <Text style={styles.sub}>{formatQty(h.qty)} @ {formatCurrency(h.price, h.currency)}</Text>
         <View style={styles.dayRow}>
-          <Text style={[styles.day, { color: gainColor(day) }]}>
-            Today {formatSignedCurrency(day, displayCurrency)}{"  "}
-          </Text>
+          <Text style={[styles.day, { color: gainColor(day) }]}>Today </Text>
+          <MoneyText
+            value={day}
+            currency={displayCurrency}
+            decimals={2}
+            signed
+            style={styles.day}
+            color={gainColor(day)}
+          />
+          <View style={styles.gap} />
           <ChangeText pct={h.day_change_pct} size={12} />
         </View>
       </View>
       <View style={styles.right}>
-        <Text style={styles.value}>{formatCurrency(value, displayCurrency)}</Text>
+        <MoneyText value={value} currency={displayCurrency} decimals={2} style={styles.value} />
         <View style={styles.gainRow}>
-          <Text style={[styles.gain, { color: gainColor(gain) }]}>
-            {formatSignedCurrency(gain, displayCurrency)}{"  "}
-          </Text>
+          <MoneyText
+            value={gain}
+            currency={displayCurrency}
+            decimals={2}
+            signed
+            style={styles.gain}
+            color={gainColor(gain)}
+          />
+          <View style={styles.gap} />
           <ChangeText pct={h.gain_pct} size={12} />
         </View>
       </View>
@@ -97,6 +110,7 @@ const makeStyles = (colors: Palette) => StyleSheet.create({
   sub: { color: colors.textDim, fontSize: 12, marginTop: 3 },
   dayRow: { flexDirection: "row", alignItems: "center", marginTop: 3 },
   day: { fontSize: 12 },
+  gap: { width: 6 },
   right: { alignItems: "flex-end" },
   value: { color: colors.text, fontSize: 16, fontWeight: "700" },
   gainRow: { flexDirection: "row", alignItems: "center", marginTop: 4 },

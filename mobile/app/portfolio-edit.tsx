@@ -17,6 +17,7 @@ import {
   useRenamePortfolio,
   useSetPortfolioCurrency,
 } from "@/hooks/data";
+import { DirhamGlyph } from "@/components/DirhamGlyph";
 import { spacing, useColors, type Palette } from "@/theme";
 
 /** Currency override options; "" = Default (USD). Labels exactly as specified. */
@@ -24,7 +25,7 @@ const CURRENCY_OPTIONS: { value: string; label: string }[] = [
   { value: "", label: "Default" },
   { value: "INR", label: "INR (₹)" },
   { value: "USD", label: "USD ($)" },
-  { value: "AED", label: "AED (D)" },
+  { value: "AED", label: "AED" },
 ];
 
 /** Create a new portfolio, or rename / delete an existing one. */
@@ -114,7 +115,15 @@ export default function PortfolioEditScreen() {
               style={[styles.ccyChip, active && styles.ccyChipActive]}
               onPress={() => setCurrency(o.value)}
             >
-              <Text style={[styles.ccyText, active && styles.ccyTextActive]}>{o.label}</Text>
+              {o.value === "AED" ? (
+                <View style={styles.ccyInline}>
+                  <Text style={[styles.ccyText, active && styles.ccyTextActive]}>AED (</Text>
+                  <DirhamGlyph size={13} color={active ? "#fff" : colors.textDim} />
+                  <Text style={[styles.ccyText, active && styles.ccyTextActive]}>)</Text>
+                </View>
+              ) : (
+                <Text style={[styles.ccyText, active && styles.ccyTextActive]}>{o.label}</Text>
+              )}
             </Pressable>
           );
         })}
@@ -150,6 +159,7 @@ const makeStyles = (colors: Palette) => StyleSheet.create({
     margin: 4,
   },
   ccyChipActive: { backgroundColor: colors.chipActive },
+  ccyInline: { flexDirection: "row", alignItems: "center" },
   ccyText: { color: colors.textDim, fontWeight: "700", fontSize: 14 },
   ccyTextActive: { color: "#fff" },
   input: {
