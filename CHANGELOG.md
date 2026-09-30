@@ -2,6 +2,13 @@
 
 A running log of the Portfolio Tracker project. Newest first.
 
+## Stage 3.7 — New UAE Dirham symbol
+- Replaced the placeholder **“D”** for AED with the **official new UAE Dirham symbol** everywhere it
+  appears (portfolio value, gain/day, dashboard rows, holding rows, the currency picker, and the chart's
+  y-axis). No phone font carries this brand-new glyph yet, so it's rendered as a small **inline vector**
+  that scales with the font size and takes the theme colour — i.e. it behaves like text, not a pasted
+  image. New `DirhamGlyph` + `MoneyText` components.
+
 ## Stage 3.6 — Real chart history, Yahoo fallback, currency-correct holdings, persistent sort
 - **Chart now shows real history for every range.** Finnhub's free candle endpoint is unavailable, so the
   performance chart was drawing a flat diagonal line. History is now built from **live candles fetched
