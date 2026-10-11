@@ -4,7 +4,7 @@ import { Alert, Pressable, ScrollView, StyleSheet, Switch, Text, View } from "re
 
 import { SegmentedToggle } from "@/components/SegmentedToggle";
 import { isBackgroundEnabled, setBackgroundEnabled } from "@/services/background";
-import { downloadTemplate } from "@/services/importTransactions";
+import { downloadTemplate, exportTransactions } from "@/services/importTransactions";
 import { useImportTransactions, useManualRefresh } from "@/hooks/data";
 import { spacing, useColors, useTheme, type Palette, type ThemeMode } from "@/theme";
 
@@ -17,6 +17,24 @@ export default function SettingsScreen() {
   const importTx = useImportTransactions();
   const [saving, setSaving] = useState(false);
   const [templating, setTemplating] = useState(false);
+  const [exporting, setExporting] = useState(false);
+
+  const runExport = async () => {
+    setExporting(true);
+    try {
+      const { folder, fileName, count } = await exportTransactions();
+      Alert.alert(
+        "Transactions exported",
+        count === 0
+          ? "You have no transactions yet, so the file only has the column headers."
+          : `Saved ${count} transaction(s) as “${fileName}” to ${folder}.`,
+      );
+    } catch (e) {
+      Alert.alert("Couldn't export", e instanceof Error ? e.message : String(e));
+    } finally {
+      setExporting(false);
+    }
+  };
 
   const getTemplate = async () => {
     setTemplating(true);
@@ -152,6 +170,29 @@ export default function SettingsScreen() {
         >
           <Text style={styles.refreshText}>
             {importTx.isPending ? "Importing…" : "Choose file & import"}
+          </Text>
+        </Pressable>
+      </View>
+
+      <View style={styles.card}>
+        <Text style={styles.title}>Export transactions</Text>
+        <Text style={styles.desc}>
+          Save all your transactions to an Excel (.xlsx) file with these columns:
+        </Text>
+        <Text style={styles.code}>
+          Date · Portfolio · Buy/Sale · Market · Ticker · Company · Quantity · Price · P/L · P/L %
+        </Text>
+        <Text style={styles.desc}>
+          Profit/Loss is each transaction marked against the asset's latest price, in the asset's own
+          currency. Saves to the same folder you picked for the template (choose one the first time).
+        </Text>
+        <Pressable
+          style={[styles.importBtn, exporting && styles.importBtnDisabled]}
+          onPress={runExport}
+          disabled={exporting}
+        >
+          <Text style={styles.refreshText}>
+            {exporting ? "Exporting…" : "⬆ Export to Excel"}
           </Text>
         </Pressable>
       </View>

@@ -2,6 +2,13 @@
 
 A running log of the Portfolio Tracker project. Newest first.
 
+## Stage 3.9 — Export transactions to Excel
+- **Settings → “Export to Excel”** saves **all your transactions** to an `.xlsx` with columns:
+  **Transaction Date · Portfolio · Buy/Sale · Market (USA/India) · Ticker Symbol · Company Name ·
+  Quantity · Price · Profit/Loss (asset currency) · Profit/Loss %**. P/L is each transaction marked
+  against the asset's latest known price (blank until a price is available). Saves into the same folder
+  used for the import template (picked once).
+
 ## Stage 3.8 — Forest theme + icon, dashboard & list refinements
 - **New look (design handoff):** applied the **forest colour palette** (light & dark) and a new
   **“Three Stacks” app icon** (ascending bars on a forest-green gradient) — `icon.png`,

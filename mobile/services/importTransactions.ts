@@ -14,10 +14,16 @@ import { File } from "expo-file-system";
 import { StorageAccessFramework as SAF } from "expo-file-system/legacy";
 import * as XLSX from "xlsx";
 
-import { getSetting, setSetting } from "@/db";
+import {
+  getAllPriceLatest,
+  getSetting,
+  listPortfolios,
+  listTransactions,
+  setSetting,
+} from "@/db";
 import type { AssetType, TransactionInput, TxAction } from "@/db/types";
 import { runTrusted } from "@/services/lockControl";
-import { displayToIso } from "@/theme";
+import { displayToIso, isoToDisplay } from "@/theme";
 
 const XLSX_MIME = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
 const SAVE_DIR_KEY = "import_save_dir_uri";
@@ -31,6 +37,79 @@ export type ParsedRow = Omit<TransactionInput, "portfolio_id"> & {
 export const TEMPLATE_COLUMNS = [
   "Portfolio", "Market", "Symbol", "Action", "Quantity", "Price", "Date",
 ];
+
+/** Columns in the full transactions export. */
+export const EXPORT_COLUMNS = [
+  "Transaction Date",
+  "Portfolio",
+  "Buy / Sale",
+  "Market",
+  "Ticker Symbol",
+  "Company Name",
+  "Quantity",
+  "Price",
+  "Profit / Loss (asset currency)",
+  "Profit / Loss %",
+];
+
+function marketLabel(assetType: AssetType): string {
+  return assetType === "in_mf" ? "India" : "USA";
+}
+
+function round2(n: number): number {
+  return Math.round(n * 100) / 100;
+}
+
+/**
+ * Export every transaction to an .xlsx and save it into the remembered folder.
+ * Profit/Loss is marked to the asset's latest known price: for each row,
+ * (currentPrice − transactionPrice) × quantity, in the asset's own currency,
+ * with the matching percentage. Blank when no live price is available yet.
+ * Returns { folder, fileName, count }.
+ */
+export async function exportTransactions(): Promise<{
+  folder: string;
+  fileName: string;
+  count: number;
+}> {
+  const [txns, portfolios, latest] = await Promise.all([
+    listTransactions(),
+    listPortfolios(),
+    getAllPriceLatest(),
+  ]);
+  const pfName = new Map(portfolios.map((p) => [p.id, p.name]));
+  const priceMap = new Map(latest.map((p) => [`${p.asset_type}:${p.key}`, p.price]));
+
+  const rows: (string | number)[][] = [EXPORT_COLUMNS];
+  for (const t of txns) {
+    const cur = priceMap.get(`${t.asset_type}:${t.key}`);
+    const hasPrice = cur !== undefined && Number.isFinite(cur) && t.price !== 0;
+    const pl = hasPrice ? round2((cur! - t.price) * t.qty) : "";
+    const plPct = hasPrice ? round2(((cur! - t.price) / t.price) * 100) : "";
+    rows.push([
+      isoToDisplay(t.trade_date),
+      pfName.get(t.portfolio_id) ?? "",
+      t.action === "buy" ? "Buy" : "Sale",
+      marketLabel(t.asset_type),
+      t.key,
+      t.name,
+      t.qty,
+      t.price,
+      pl,
+      plPct,
+    ]);
+  }
+
+  const ws = XLSX.utils.aoa_to_sheet(rows);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "Transactions");
+  const base64 = XLSX.write(wb, { type: "base64", bookType: "xlsx" }) as string;
+
+  const stamp = new Date().toISOString().slice(0, 10);
+  const fileName = `portfolio-transactions-${stamp}`;
+  const folder = await saveXlsxToFolder(base64, fileName);
+  return { folder, fileName: `${fileName}.xlsx`, count: txns.length };
+}
 
 /**
  * Save a folder the user picked (once) for template downloads and remember it so
@@ -47,10 +126,25 @@ async function ensureSaveDir(): Promise<string> {
   return perm.directoryUri;
 }
 
-async function writeTemplateTo(dirUri: string, base64: string): Promise<string> {
-  const fileUri = await SAF.createFileAsync(dirUri, "portfolio-import-template", XLSX_MIME);
+async function writeXlsxTo(dirUri: string, base64: string, fileName: string): Promise<string> {
+  const fileUri = await SAF.createFileAsync(dirUri, fileName, XLSX_MIME);
   await SAF.writeAsStringAsync(fileUri, base64, { encoding: "base64" });
   return fileUri;
+}
+
+/** Save an xlsx (base64) into the remembered folder, re-prompting once if stale. */
+async function saveXlsxToFolder(base64: string, fileName: string): Promise<string> {
+  return runTrusted(async () => {
+    let dirUri = await ensureSaveDir();
+    try {
+      await writeXlsxTo(dirUri, base64, fileName);
+    } catch {
+      await setSetting(SAVE_DIR_KEY, "");
+      dirUri = await ensureSaveDir();
+      await writeXlsxTo(dirUri, base64, fileName);
+    }
+    return prettyDirName(dirUri);
+  });
 }
 
 /**
@@ -68,21 +162,7 @@ export async function downloadTemplate(): Promise<string> {
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, "Transactions");
   const base64 = XLSX.write(wb, { type: "base64", bookType: "xlsx" }) as string;
-
-  // Opening the folder picker backgrounds the app — mark it trusted so the app
-  // lock doesn't engage while the user is choosing a folder.
-  return runTrusted(async () => {
-    let dirUri = await ensureSaveDir();
-    try {
-      await writeTemplateTo(dirUri, base64);
-    } catch {
-      // Stored folder permission may be stale (folder deleted / revoked) — ask once more.
-      await setSetting(SAVE_DIR_KEY, "");
-      dirUri = await ensureSaveDir();
-      await writeTemplateTo(dirUri, base64);
-    }
-    return prettyDirName(dirUri);
-  });
+  return saveXlsxToFolder(base64, "portfolio-import-template");
 }
 
 /** Best-effort human-readable name of the chosen SAF folder (e.g. "Download"). */
