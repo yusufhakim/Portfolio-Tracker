@@ -15,7 +15,6 @@ import { StorageAccessFramework as SAF } from "expo-file-system/legacy";
 import * as XLSX from "xlsx";
 
 import {
-  getAllPriceLatest,
   getSetting,
   listPortfolios,
   listTransactions,
@@ -48,44 +47,38 @@ export const EXPORT_COLUMNS = [
   "Company Name",
   "Quantity",
   "Price",
-  "Profit / Loss (asset currency)",
-  "Profit / Loss %",
 ];
 
 function marketLabel(assetType: AssetType): string {
   return assetType === "in_mf" ? "India" : "USA";
 }
 
-function round2(n: number): number {
-  return Math.round(n * 100) / 100;
+/** Save an xlsx (base64), prompting the user to pick a folder every time. */
+async function saveXlsxAsk(base64: string, fileName: string): Promise<string> {
+  return runTrusted(async () => {
+    const perm = await SAF.requestDirectoryPermissionsAsync();
+    if (!perm.granted || !perm.directoryUri) {
+      throw new Error("No folder was chosen.");
+    }
+    await writeXlsxTo(perm.directoryUri, base64, fileName);
+    return prettyDirName(perm.directoryUri);
+  });
 }
 
 /**
- * Export every transaction to an .xlsx and save it into the remembered folder.
- * Profit/Loss is marked to the asset's latest known price: for each row,
- * (currentPrice − transactionPrice) × quantity, in the asset's own currency,
- * with the matching percentage. Blank when no live price is available yet.
- * Returns { folder, fileName, count }.
+ * Export every transaction to an .xlsx. Prompts for a folder each time and saves
+ * as "Transactions_dd_mm_yyyy.xlsx". Returns { folder, fileName, count }.
  */
 export async function exportTransactions(): Promise<{
   folder: string;
   fileName: string;
   count: number;
 }> {
-  const [txns, portfolios, latest] = await Promise.all([
-    listTransactions(),
-    listPortfolios(),
-    getAllPriceLatest(),
-  ]);
+  const [txns, portfolios] = await Promise.all([listTransactions(), listPortfolios()]);
   const pfName = new Map(portfolios.map((p) => [p.id, p.name]));
-  const priceMap = new Map(latest.map((p) => [`${p.asset_type}:${p.key}`, p.price]));
 
   const rows: (string | number)[][] = [EXPORT_COLUMNS];
   for (const t of txns) {
-    const cur = priceMap.get(`${t.asset_type}:${t.key}`);
-    const hasPrice = cur !== undefined && Number.isFinite(cur) && t.price !== 0;
-    const pl = hasPrice ? round2((cur! - t.price) * t.qty) : "";
-    const plPct = hasPrice ? round2(((cur! - t.price) / t.price) * 100) : "";
     rows.push([
       isoToDisplay(t.trade_date),
       pfName.get(t.portfolio_id) ?? "",
@@ -95,8 +88,6 @@ export async function exportTransactions(): Promise<{
       t.name,
       t.qty,
       t.price,
-      pl,
-      plPct,
     ]);
   }
 
@@ -105,9 +96,11 @@ export async function exportTransactions(): Promise<{
   XLSX.utils.book_append_sheet(wb, ws, "Transactions");
   const base64 = XLSX.write(wb, { type: "base64", bookType: "xlsx" }) as string;
 
-  const stamp = new Date().toISOString().slice(0, 10);
-  const fileName = `portfolio-transactions-${stamp}`;
-  const folder = await saveXlsxToFolder(base64, fileName);
+  const d = new Date();
+  const dd = String(d.getDate()).padStart(2, "0");
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const fileName = `Transactions_${dd}_${mm}_${d.getFullYear()}`;
+  const folder = await saveXlsxAsk(base64, fileName);
   return { folder, fileName: `${fileName}.xlsx`, count: txns.length };
 }
 

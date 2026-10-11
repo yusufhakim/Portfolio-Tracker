@@ -180,11 +180,10 @@ export default function SettingsScreen() {
           Save all your transactions to an Excel (.xlsx) file with these columns:
         </Text>
         <Text style={styles.code}>
-          Date · Portfolio · Buy/Sale · Market · Ticker · Company · Quantity · Price · P/L · P/L %
+          Date · Portfolio · Buy/Sale · Market · Ticker · Company · Quantity · Price
         </Text>
         <Text style={styles.desc}>
-          Profit/Loss is each transaction marked against the asset's latest price, in the asset's own
-          currency. Saves to the same folder you picked for the template (choose one the first time).
+          You'll be asked where to save it; the file is named “Transactions_dd_mm_yyyy.xlsx”.
         </Text>
         <Pressable
           style={[styles.importBtn, exporting && styles.importBtnDisabled]}
