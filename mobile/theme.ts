@@ -15,31 +15,31 @@ export interface Palette {
 }
 
 export const darkColors: Palette = {
-  bg: "#0B0E14",
-  surface: "#151A23",
-  surfaceAlt: "#1E2530",
-  border: "#252C38",
-  text: "#E6E9EF",
-  textDim: "#8A93A6",
-  accent: "#4C8DFF",
-  positive: "#2ECC71",
-  negative: "#FF5C5C",
-  chip: "#1E2530",
-  chipActive: "#4C8DFF",
+  bg: "#020301",
+  surface: "#0E1805",
+  surfaceAlt: "#182D09",
+  border: "#21420D",
+  text: "#ECE6D7",
+  textDim: "#9EB07A",
+  accent: "#6B9C3A",
+  positive: "#9EB07A",
+  negative: "#E4A896",
+  chip: "#182D09",
+  chipActive: "#6B9C3A",
 };
 
 export const lightColors: Palette = {
-  bg: "#F4F6FA",
+  bg: "#F6F3EE",
   surface: "#FFFFFF",
-  surfaceAlt: "#E8ECF2",
-  border: "#D5DCE6",
-  text: "#0B0E14",
-  textDim: "#5B6472",
-  accent: "#2F6FED",
-  positive: "#12A150",
-  negative: "#E5484D",
-  chip: "#E8ECF2",
-  chipActive: "#2F6FED",
+  surfaceAlt: "#ECE6D7",
+  border: "#D6CDBB",
+  text: "#0E1805",
+  textDim: "#6B6B55",
+  accent: "#305711",
+  positive: "#305711",
+  negative: "#B5411C",
+  chip: "#ECE6D7",
+  chipActive: "#305711",
 };
 
 /** Fallback palette for pure helpers and the context default (dark = the original look). */
@@ -128,10 +128,10 @@ export function formatSignedCurrency(
   return `${sign}${formatCurrency(Math.abs(value), ccy)}`;
 }
 
-/** Quantity with up to 4 decimals, trailing zeros trimmed. */
+/** Quantity with thousands separators and up to 4 decimals (trailing zeros trimmed). */
 export function formatQty(value: number | null | undefined): string {
-  if (value === null || value === undefined) return "—";
-  return Number(value.toFixed(4)).toString();
+  if (value === null || value === undefined || !Number.isFinite(value)) return "—";
+  return value.toLocaleString(undefined, { maximumFractionDigits: 4 });
 }
 
 // yyyy-mm-dd <-> dd/mm/yyyy helpers for the date field.

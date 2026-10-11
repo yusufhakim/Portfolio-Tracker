@@ -27,9 +27,9 @@ graph you can toggle across time ranges.
   kept for reference only and are **no longer used** by the Stage 2 app.
 
 ## What it does (Stage 3)
-- **Dashboard home** — header **“Yusuf's Portfolio Tracker”** + settings gear; a **USA / India** toggle
-  swapping live **index cards** (level · colored daily change · sparkline); a **Portfolios** list with a
-  **+** to create a new one.
+- **Dashboard home** — header **“Yusuf's Portfolio Tracker”** + settings; **USA and India index rows
+  stacked** (S&P 500 · Nasdaq · Dow, then Sensex · Nifty 50 · Nifty Bank), each with live cards
+  (level · colored daily change · sparkline); a **Portfolios** list with a **+** to create a new one.
 - **Multiple portfolios (buckets)** — every transaction belongs to exactly one portfolio. Create, rename,
   or delete portfolios; each row shows its value (0 dp) and **daily change %** with a green/red arrow.
   Existing data is migrated into a default **“My Portfolio”** on first launch.
@@ -97,7 +97,7 @@ with Android Studio's toolchain (recommended, `windows-build-apk-local.bat`) or 
 | US history + fallback | Yahoo Finance chart/search | Keyless. Source for **historical candles** (all chart ranges) and a **fallback** for quotes/search so tickers Finnhub's free tier omits (e.g. LIT) still work. |
 | Indian mutual fund NAVs | [mfapi.in](https://www.mfapi.in) | Keyless; search by name, latest + full historical NAV. |
 | FX (USD↔INR↔AED) | [open.er-api.com](https://open.er-api.com) | Keyless, USD-based rates at full precision; drives the per-portfolio display currency. (xe.com has no free public API.) |
-| Market indices (S&P 500, Nasdaq, Dow / Sensex, Nifty 50, Nifty Next 50) | Yahoo Finance chart API | Keyless, unofficial; dashboard cards only, not stored. A card shows “Unavailable” if Yahoo hiccups. |
+| Market indices (S&P 500, Nasdaq, Dow / Sensex, Nifty 50, Nifty Bank) | Yahoo Finance chart API | Keyless, unofficial; dashboard cards only, not stored. A card shows “Unavailable” if Yahoo hiccups. |
 
 ## Develop / verify the mobile app
 ```bash

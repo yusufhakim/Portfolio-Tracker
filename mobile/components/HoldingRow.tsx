@@ -44,8 +44,8 @@ export function HoldingRow({ holding: h, onPress, displayCurrency, fxFactor }: P
     <Pressable style={styles.row} onPress={() => onPress(h)}>
       <View style={styles.left}>
         <View style={styles.titleRow}>
-          <Text style={styles.symbol} numberOfLines={1}>
-            {h.key}
+          <Text style={styles.symbol} numberOfLines={1} ellipsizeMode="tail">
+            {h.asset_type === "in_mf" ? h.name : h.key}
           </Text>
           <View style={styles.badge}>
             <Text style={styles.badgeText}>{TYPE_LABEL[h.asset_type]}</Text>

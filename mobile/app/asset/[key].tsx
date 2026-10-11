@@ -135,7 +135,7 @@ export default function AssetDetailScreen() {
               })
             }
           >
-            <Text style={styles.actionText}>Sell</Text>
+            <Text style={styles.sellText}>Sell</Text>
           </Pressable>
         )}
       </View>
@@ -212,8 +212,9 @@ const makeStyles = (colors: Palette) => StyleSheet.create({
     marginHorizontal: spacing.xs,
   },
   buyBtn: { backgroundColor: colors.accent },
-  sellBtn: { backgroundColor: colors.surfaceAlt },
+  sellBtn: { backgroundColor: colors.surfaceAlt, borderWidth: 1, borderColor: colors.border },
   actionText: { color: "#fff", fontWeight: "700" },
+  sellText: { color: colors.text, fontWeight: "700" },
   sectionTitle: {
     color: colors.text,
     fontSize: 18,

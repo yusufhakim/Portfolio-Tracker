@@ -13,6 +13,11 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { HoldingRow } from "@/components/HoldingRow";
 import { HoldingsSort, defaultSort, type SortState } from "@/components/HoldingsSort";
+import {
+  TransactionsSort,
+  defaultTxnSort,
+  type TxnSortState,
+} from "@/components/TransactionsSort";
 import { MoneyText } from "@/components/MoneyText";
 import { PortfolioChart } from "@/components/PortfolioChart";
 import { RangeToggle } from "@/components/RangeToggle";
@@ -68,6 +73,24 @@ export default function PortfolioDetailScreen() {
     setSetting("holdings_sort", JSON.stringify(s)).catch(() => {});
   };
 
+  // Transactions sort — also remembered across navigation.
+  const [txnSort, setTxnSortState] = useState<TxnSortState>(defaultTxnSort());
+  useEffect(() => {
+    getSetting("transactions_sort").then((v) => {
+      if (!v) return;
+      try {
+        const s = JSON.parse(v);
+        if (s?.field && s?.dir) setTxnSortState(s as TxnSortState);
+      } catch {
+        /* ignore bad value */
+      }
+    });
+  }, []);
+  const setTxnSort = (s: TxnSortState) => {
+    setTxnSortState(s);
+    setSetting("transactions_sort", JSON.stringify(s)).catch(() => {});
+  };
+
   const meta = usePortfolioMeta(portfolioId);
   const portfolioQuery = usePortfolio(portfolioId);
   const historyQuery = useHistory(portfolioId, range);
@@ -95,6 +118,26 @@ export default function PortfolioDetailScreen() {
     });
     return arr;
   }, [p?.holdings, sort]);
+
+  const sortedTxns = useMemo(() => {
+    const arr = [...(txQuery.data ?? [])];
+    const sign = txnSort.dir === "asc" ? 1 : -1;
+    arr.sort((a, b) => {
+      let r = 0;
+      switch (txnSort.field) {
+        case "ticker": r = a.key.localeCompare(b.key); break;
+        case "name": r = (a.name ?? "").localeCompare(b.name ?? ""); break;
+        case "shares": r = a.qty - b.qty; break;
+        case "price": r = a.price - b.price; break;
+        case "total": r = a.qty * a.price - b.qty * b.price; break;
+        case "date":
+          r = a.trade_date < b.trade_date ? -1 : a.trade_date > b.trade_date ? 1 : a.id - b.id;
+          break;
+      }
+      return r * sign;
+    });
+    return arr;
+  }, [txQuery.data, txnSort]);
 
   const header = (
     <View>
@@ -153,7 +196,11 @@ export default function PortfolioDetailScreen() {
             onChange={setTab}
           />
         </View>
-        {tab === "holdings" && <HoldingsSort value={sort} onChange={setSort} />}
+        {tab === "holdings" ? (
+          <HoldingsSort value={sort} onChange={setSort} />
+        ) : (
+          <TransactionsSort value={txnSort} onChange={setTxnSort} />
+        )}
         <Link
           href={{ pathname: "/add-asset", params: { portfolioId: String(portfolioId) } }}
           asChild
@@ -174,7 +221,6 @@ export default function PortfolioDetailScreen() {
     );
   }
 
-  const txns = txQuery.data ?? [];
   const showingHoldings = tab === "holdings";
 
   return (
@@ -204,7 +250,7 @@ export default function PortfolioDetailScreen() {
           paddingTop: insets.top + spacing.sm,
           paddingBottom: insets.bottom + spacing.xl,
         }}
-        data={showingHoldings ? sortedHoldings : txns}
+        data={showingHoldings ? sortedHoldings : sortedTxns}
         keyExtractor={(item: Holding | Transaction) =>
           showingHoldings
             ? `${(item as Holding).asset_type}:${(item as Holding).key}`

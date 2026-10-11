@@ -2,6 +2,22 @@
 
 A running log of the Portfolio Tracker project. Newest first.
 
+## Stage 3.8 — Forest theme + icon, dashboard & list refinements
+- **New look (design handoff):** applied the **forest colour palette** (light & dark) and a new
+  **“Three Stacks” app icon** (ascending bars on a forest-green gradient) — `icon.png`,
+  `adaptive-icon.png`, `splash-icon.png` regenerated.
+- **Dashboard:** USA and India index rows now sit **stacked, one below the other** (no toggle) — USA
+  (S&P 500 · Nasdaq · Dow Jones) above India (Sensex · Nifty 50 · **Nifty Bank**), each under its own
+  header. **Nifty Next 50 → Nifty Bank** (`^NSEBANK`).
+- **India funds show their name** instead of the AMFI scheme code in both Holdings and Transactions rows
+  (truncated with “…” so the cards don't grow).
+- **Transactions sort:** the Transactions tab now has a **Sort** control (like Holdings) — by ticker,
+  company name, no. of shares, avg cost per share, total cost, or transaction date; remembered across
+  navigation.
+- **Quantities** now use thousands/millions comma formatting (e.g. `31,248.98`).
+- **Fix:** the **Sell** button is now clearly visible (bordered, dark label) instead of white-on-light.
+- Verified: `tsc` clean, `npm test`, and `expo export` all pass.
+
 ## Stage 3.7 — New UAE Dirham symbol
 - Replaced the placeholder **“D”** for AED with the **official new UAE Dirham symbol** everywhere it
   appears (portfolio value, gain/day, dashboard rows, holding rows, the currency picker, and the chart's

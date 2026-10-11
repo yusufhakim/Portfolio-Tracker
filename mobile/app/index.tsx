@@ -1,5 +1,5 @@
 import { Link, useRouter } from "expo-router";
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import {
   ActivityIndicator,
   FlatList,
@@ -15,7 +15,6 @@ import { Icon } from "@/components/Icon";
 import { IndexCard } from "@/components/IndexCard";
 import { Logo } from "@/components/Logo";
 import { PortfolioRow } from "@/components/PortfolioRow";
-import { SegmentedToggle } from "@/components/SegmentedToggle";
 import type { PortfolioWithValue } from "@/db/types";
 import {
   useAutoRefresh,
@@ -25,19 +24,31 @@ import {
 } from "@/hooks/data";
 import { spacing, useColors, type Palette } from "@/theme";
 
-type Market = "us" | "in";
-
 export default function DashboardScreen() {
   useAutoRefresh();
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const colors = useColors();
   const styles = useMemo(() => makeStyles(colors), [colors]);
-  const [market, setMarket] = useState<Market>("us");
 
-  const indices = useIndices(market);
+  const usIndices = useIndices("us");
+  const inIndices = useIndices("in");
   const portfolios = usePortfolios();
   const refresh = useManualRefresh();
+
+  const indexRow = (q: ReturnType<typeof useIndices>) => (
+    <View style={styles.indexBlock}>
+      {q.isLoading ? (
+        <ActivityIndicator color={colors.accent} style={{ marginVertical: spacing.lg }} />
+      ) : (
+        <View style={styles.indexRow}>
+          {(q.data ?? []).map((x) => (
+            <IndexCard key={x.symbol} quote={x} />
+          ))}
+        </View>
+      )}
+    </View>
+  );
 
   const header = (
     <View>
@@ -53,26 +64,10 @@ export default function DashboardScreen() {
         </Link>
       </View>
 
-      <SegmentedToggle
-        options={[
-          { value: "us", label: "USA" },
-          { value: "in", label: "India" },
-        ]}
-        value={market}
-        onChange={setMarket}
-      />
-
-      <View style={styles.indexBlock}>
-        {indices.isLoading ? (
-          <ActivityIndicator color={colors.accent} style={{ marginVertical: spacing.lg }} />
-        ) : (
-          <View style={styles.indexRow}>
-            {(indices.data ?? []).map((q) => (
-              <IndexCard key={q.symbol} quote={q} />
-            ))}
-          </View>
-        )}
-      </View>
+      <Text style={styles.marketTitle}>USA</Text>
+      {indexRow(usIndices)}
+      <Text style={styles.marketTitle}>India</Text>
+      {indexRow(inIndices)}
 
       <View style={styles.sectionHeader}>
         <Text style={styles.sectionTitle}>Portfolios</Text>
@@ -118,7 +113,8 @@ export default function DashboardScreen() {
           refreshing={refresh.isPending}
           onRefresh={() => {
             refresh.mutate();
-            indices.refetch();
+            usIndices.refetch();
+            inIndices.refetch();
           }}
           tintColor={colors.accent}
         />
@@ -137,7 +133,14 @@ const makeStyles = (colors: Palette) => StyleSheet.create({
   },
   brand: { flexDirection: "row", alignItems: "center", gap: 8, flex: 1, marginRight: spacing.md },
   appName: { color: colors.text, fontSize: 22, fontWeight: "800", flexShrink: 1 },
-  indexBlock: { minHeight: 60, marginTop: spacing.md },
+  marketTitle: {
+    color: colors.textDim,
+    fontSize: 12,
+    fontWeight: "800",
+    letterSpacing: 0.6,
+    marginTop: spacing.md,
+  },
+  indexBlock: { minHeight: 60, marginTop: spacing.xs },
   indexRow: {
     flexDirection: "row",
     alignItems: "stretch",

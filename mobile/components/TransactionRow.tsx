@@ -20,7 +20,9 @@ export function TransactionRow({ tx, onPress, onDelete }: Props) {
       <Pressable style={styles.main} onPress={() => onPress(tx)}>
         <View style={styles.left}>
           <View style={styles.titleRow}>
-            <Text style={styles.symbol}>{tx.key}</Text>
+            <Text style={styles.symbol} numberOfLines={1} ellipsizeMode="tail">
+              {tx.asset_type === "in_mf" ? tx.name : tx.key}
+            </Text>
             <View style={[styles.badge, isBuy ? styles.buyBadge : styles.sellBadge]}>
               <Text style={styles.badgeText}>{isBuy ? "Purchase" : "Sale"}</Text>
             </View>
@@ -69,9 +71,10 @@ const makeStyles = (colors: Palette) => StyleSheet.create({
   },
   left: { flex: 1, marginRight: spacing.md },
   titleRow: { flexDirection: "row", alignItems: "center" },
-  symbol: { color: colors.text, fontSize: 15, fontWeight: "700" },
+  symbol: { color: colors.text, fontSize: 15, fontWeight: "700", flexShrink: 1 },
   badge: {
     marginLeft: spacing.sm,
+    flexShrink: 0,
     borderRadius: 6,
     paddingHorizontal: 6,
     paddingVertical: 2,
